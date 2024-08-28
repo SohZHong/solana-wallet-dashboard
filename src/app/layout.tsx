@@ -1,12 +1,11 @@
 import type { Metadata } from "next";
-import { DM_Sans, Inter } from "next/font/google";
+import { DM_Sans } from "next/font/google";
 import "./globals.css";
 import AppWalletProvider from "./components/context/AppWalletProvider";
 import Header from "./components/Header";
 import AppThemeProvider from "./components/context/AppThemeProvider";
+import AppMotionProvider from "./components/context/AppMotionProvider";
 
-const inter = Inter({ subsets: ["latin"] });
-// DM Sans', 'Roboto', 'Helvetica Neue', Helvetica, Arial, sans-serif;
 const dmSans = DM_Sans({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
@@ -26,10 +25,12 @@ export default function RootLayout({
     <html lang="en">
       <body className={dmSans.className}>
       <AppThemeProvider defaultTheme={theme} enableSystem>
-        <AppWalletProvider>
-          <Header />
-          {children}
-        </AppWalletProvider>
+        <AppMotionProvider>
+          <AppWalletProvider>
+            <Header />
+            {children}
+          </AppWalletProvider>
+        </AppMotionProvider>
       </AppThemeProvider>
       </body>
     </html>
