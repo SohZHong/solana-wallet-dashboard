@@ -19,7 +19,9 @@ const config: Config = {
         "brand-blue": "#41a8eb",
         "brand-blue-grey": "#b1aedd",
         "brand-grey": "#dcd6ec",
-        "brand-violet": "#f5f2ff"
+        "brand-violet": "#f5f2ff",
+        "white-mode": "e5e5e5",
+        "extra-light-grey": "#e1e1e1"
       }
     },
   },

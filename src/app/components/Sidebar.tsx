@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import HamburgerIcon from './icons/HamburgerIcon'
 import React from 'react'
+import Image from "next/image";
 
 const framerSidebarBackground = {
     initial: { opacity: 0 },
@@ -65,14 +66,19 @@ const Sidebar = ({ items }: SidebarComponentProps) => { // Destructure items fro
                       ></motion.div>
                       <motion.div
                           {...framerSidebarPanel}
-                          className="fixed top-0 bottom-0 left-0 z-50 w-full h-screen max-w-xs border-r-2 border-zinc-800 bg-zinc-900"
+                          className="fixed top-0 bottom-0 left-0 z-50 w-full h-screen max-w-xs border-r-2  dark:border-zinc-800 dark:bg-zinc-900 shadow-md bg-white"
                           aria-label="Sidebar"
                       >
-                          <div className="flex items-center justify-between p-5 border-b-2 border-zinc-800">
-                              <span className='font-bold'>SOLSETS</span>
+                          <div className="flex items-center justify-between p-5 border-b-2 dark:border-zinc-800 border-extra-light-grey">
+                            <Image 
+                                src={"/logo.png"}
+                                alt="SolSets Logo"
+                                height={175}
+                                width={175}
+                            />
                               <button
                                   onClick={toggleSidebar}
-                                  className="p-3 border-2 border-zinc-800 rounded-xl"
+                                  className="p-3 border-2 font-bold dark:border-zinc-800 border-extra-light-grey text-base rounded-xl"
                                   aria-label="close sidebar"
                               >
                                   Close
@@ -82,11 +88,11 @@ const Sidebar = ({ items }: SidebarComponentProps) => { // Destructure items fro
                               {items.map((item, index) => {
                                   const { title, href, Icon } = item;
                                   return (
-                                      <li key={title}>
+                                      <li className='font-bold p-2' key={title}>
                                           <a
                                               onClick={closeSideBar}
                                               href={href}
-                                              className="flex items-center gap-5 p-5 transition-all hover:bg-zinc-900 border-zinc-800"
+                                              className="flex items-center gap-5 p-3 rounded transition-all hover:bg-brand-purple hover:text-white dark:hover:bg-zinc-900"
                                           >
                                               <motion.div {...framerText(index)}>{Icon}</motion.div>
                                               <motion.span {...framerText(index)} className='text-left'>{title}</motion.span>

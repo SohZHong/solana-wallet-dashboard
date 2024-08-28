@@ -3,13 +3,14 @@ import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import ThemeSlider from "./ThemeSlider";
 import Image from "next/image";
 import DashboardIcon from "./icons/DashboardIcon";
+import HistoryIcon from "./icons/HistoryIcon";
 import Sidebar, {SidebarProps} from "./Sidebar";
 
 export default function Header(){
 
     const sideBarItems: SidebarProps[] = [
-        {title: "Dashboard", Icon: <DashboardIcon className="w-7 h-auto stroke-brand-purple dark:stroke-brand-blue"/>, href: "/"},
-        {title: "Transaction History", Icon: <DashboardIcon className="w-7 h-auto dark:stroke-brand-blue stroke-brand-purple"/>, href: "/history"}
+        {title: "Dashboard", Icon: <DashboardIcon className="w-7 h-auto"/>, href: "/"},
+        {title: "Transaction History", Icon: <HistoryIcon className="w-7 h-auto"/>, href: "/history"}
     ]
 
     return (

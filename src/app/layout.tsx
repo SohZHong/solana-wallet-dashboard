@@ -23,7 +23,9 @@ export default function RootLayout({
 
   return (
     <html lang="en">
-      <body className={`${dmSans.className} dark:bg-black bg-brand-violet`}>
+      <body 
+        className={`${dmSans.className} dark:text-white text-black dark:bg-black bg-white-mode`}
+      >
       <AppThemeProvider attribute="class" defaultTheme={theme} enableSystem>
         <AppMotionProvider>
           <AppWalletProvider>
