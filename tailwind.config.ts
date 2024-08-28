@@ -6,6 +6,7 @@ const config: Config = {
     "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
   ],
+  darkMode: 'class',
   theme: {
     extend: {
       backgroundImage: {
@@ -17,7 +18,8 @@ const config: Config = {
         "brand-purple": "#512da8",
         "brand-blue": "#41a8eb",
         "brand-blue-grey": "#b1aedd",
-        "brand-grey": "#dcd6ec"
+        "brand-grey": "#dcd6ec",
+        "brand-violet": "#f5f2ff"
       }
     },
   },

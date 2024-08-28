@@ -49,10 +49,10 @@ const Sidebar = ({ items }: SidebarComponentProps) => { // Destructure items fro
       <div>
           <button
               onClick={toggleSidebar}
-              className="p-2 border border-brand-purple rounded-xl"
+              className="p-1"
               aria-label="toggle sidebar"
           >
-              <HamburgerIcon className="fill-brand-purple w-8 h-auto" />
+              <HamburgerIcon className="dark:stroke-brand-blue stroke-brand-purple w-8 h-auto" />
           </button>
           <AnimatePresence mode="wait" initial={false}>
               {open && (
@@ -69,7 +69,7 @@ const Sidebar = ({ items }: SidebarComponentProps) => { // Destructure items fro
                           aria-label="Sidebar"
                       >
                           <div className="flex items-center justify-between p-5 border-b-2 border-zinc-800">
-                              <span>Welcome</span>
+                              <span className='font-bold'>SOLSETS</span>
                               <button
                                   onClick={toggleSidebar}
                                   className="p-3 border-2 border-zinc-800 rounded-xl"
@@ -86,10 +86,10 @@ const Sidebar = ({ items }: SidebarComponentProps) => { // Destructure items fro
                                           <a
                                               onClick={closeSideBar}
                                               href={href}
-                                              className="flex items-center justify-between gap-5 p-5 transition-all border-b-2 hover:bg-zinc-900 border-zinc-800"
+                                              className="flex items-center gap-5 p-5 transition-all hover:bg-zinc-900 border-zinc-800"
                                           >
                                               <motion.div {...framerText(index)}>{Icon}</motion.div>
-                                              <motion.span {...framerText(index)}>{title}</motion.span>
+                                              <motion.span {...framerText(index)} className='text-left'>{title}</motion.span>
                                           </a>
                                       </li>
                                   );

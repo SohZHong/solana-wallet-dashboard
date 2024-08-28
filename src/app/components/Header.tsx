@@ -8,13 +8,13 @@ import Sidebar, {SidebarProps} from "./Sidebar";
 export default function Header(){
 
     const sideBarItems: SidebarProps[] = [
-        {title: "Dashboard", Icon: <DashboardIcon className="w-7 h-auto border-none fill-brand-purple" />, href: "/"},
-        {title: "Transaction History", Icon: <DashboardIcon className="w-7 h-auto fill-brand-purple"/>, href: "/"}
+        {title: "Dashboard", Icon: <DashboardIcon className="w-7 h-auto stroke-brand-purple dark:stroke-brand-blue"/>, href: "/"},
+        {title: "Transaction History", Icon: <DashboardIcon className="w-7 h-auto dark:stroke-brand-blue stroke-brand-purple"/>, href: "/history"}
     ]
 
     return (
-        <header className="flex flex-row justify-between">
-            <div className="flex gap-2">
+        <header className="flex flex-row items-center justify-between p-2">
+            <div className="flex items-center gap-4">
                 <Sidebar 
                     items={sideBarItems}
                 />
@@ -25,7 +25,7 @@ export default function Header(){
                     width={175}
                 />
             </div>
-            <div className="flex flex-row gap-2">
+            <div className="flex items-center flex-row gap-4">
                 <WalletMultiButton style={{}}/>
                 <ThemeSlider />
             </div>

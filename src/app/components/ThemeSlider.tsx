@@ -1,26 +1,36 @@
-"use client";
-
 import { useTheme } from "next-themes";
-import { useEffect, useState } from "react";
-import LightModeIcon from "./icons/LightModeIcon";
+import { ChangeEvent, useEffect, useState } from "react";
+import ToggleSwitch from "./ToggleSwitch";
 import DarkModeIcon from "./icons/DarkModeIcon";
+import LightModeIcon from "./icons/LightModeIcon";
 
 const ThemeSlider = () => {
-  const [mounted, setMounted] = useState(false)
-  const {theme, setTheme } = useTheme()
+  const [mounted, setMounted] = useState(false);
+  const { theme, setTheme } = useTheme();
 
   useEffect(() => {
-    setMounted(true)
-  }, [])
+    setMounted(true);
+  }, []);
 
-  if(!mounted) return null
+  if (!mounted) return null;
+
+  const onSlideToggle = (e: ChangeEvent<HTMLInputElement>) => {
+    setTheme(e.target.checked ? 'dark' : 'light');
+  };
 
   return (
     <div>
-      <button onClick={() => setTheme('light')}><LightModeIcon className="w-7 h-auto"/></button>
-      <button onClick={() => setTheme('dark')}><DarkModeIcon className="w-7 h-auto"/></button>
+      <ToggleSwitch
+        name="themeToggle"
+        checked={theme === 'dark'}
+        onChange={onSlideToggle}
+        optionLabels={['Light', 'Dark']}
+        id="themeToggle"
+        checkedIcon={<DarkModeIcon className="w-4 h-auto text-black"/>}
+        uncheckedIcon={<LightModeIcon className="w-4 h-auto" />}
+      />
     </div>
-  )
+  );
 };
 
-export default ThemeSlider
+export default ThemeSlider;
