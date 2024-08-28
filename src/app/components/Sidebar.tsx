@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import HamburgerIcon from './icons/HamburgerIcon'
 import React from 'react'
 import Image from "next/image";
+import Link from 'next/link';
 
 const framerSidebarBackground = {
     initial: { opacity: 0 },
@@ -53,7 +54,7 @@ const Sidebar = ({ items }: SidebarComponentProps) => { // Destructure items fro
               className="p-1"
               aria-label="toggle sidebar"
           >
-              <HamburgerIcon className="dark:stroke-brand-blue stroke-brand-purple w-8 h-auto" />
+              <HamburgerIcon className="dark:stroke-white stroke-brand-purple w-8 h-auto" />
           </button>
           <AnimatePresence mode="wait" initial={false}>
               {open && (
@@ -89,14 +90,13 @@ const Sidebar = ({ items }: SidebarComponentProps) => { // Destructure items fro
                                   const { title, href, Icon } = item;
                                   return (
                                       <li className='font-bold p-2' key={title}>
-                                          <a
-                                              onClick={closeSideBar}
+                                          <Link
                                               href={href}
-                                              className="flex items-center gap-5 p-3 rounded transition-all hover:bg-brand-purple hover:text-white dark:hover:bg-zinc-900"
+                                              className="flex items-center gap-5 p-3 rounded transition-all hover:bg-brand-purple hover:text-white"
                                           >
                                               <motion.div {...framerText(index)}>{Icon}</motion.div>
                                               <motion.span {...framerText(index)} className='text-left'>{title}</motion.span>
-                                          </a>
+                                          </Link>
                                       </li>
                                   );
                               })}

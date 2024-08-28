@@ -27,12 +27,15 @@ export default function RootLayout({
         className={`${dmSans.className} dark:text-white text-black dark:bg-black bg-white-mode`}
       >
       <AppThemeProvider attribute="class" defaultTheme={theme} enableSystem>
-        <AppMotionProvider>
           <AppWalletProvider>
+          <AppMotionProvider>
             <Header />
-            {children}
+            <main className="flex items-center justify-center h-screen">
+              {children}
+            </main>
+            </AppMotionProvider>
           </AppWalletProvider>
-        </AppMotionProvider>
+
       </AppThemeProvider>
       </body>
     </html>
