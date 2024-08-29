@@ -5,6 +5,8 @@ import AppWalletProvider from "./components/context/AppWalletProvider";
 import Header from "./components/Header";
 import AppThemeProvider from "./components/context/AppThemeProvider";
 import AppMotionProvider from "./components/context/AppMotionProvider";
+import ConnectNotice from "./components/ConnectNotice";
+import AppConnectionHandler from "./components/context/AppConnectionHandler";
 
 const dmSans = DM_Sans({ subsets: ["latin"] })
 
@@ -20,20 +22,20 @@ export default function RootLayout({
 }>) {
   // Get System Theme
   const theme = "system";
-
   return (
     <html lang="en">
       <body 
-        className={`${dmSans.className} dark:text-white text-black dark:bg-black bg-white-mode`}
+        className={`${dmSans.className} overflow-hidden dark:text-white text-black dark:bg-black bg-white-mode`}
       >
       <AppThemeProvider attribute="class" defaultTheme={theme} enableSystem>
           <AppWalletProvider>
-          <AppMotionProvider>
-            <Header />
-              {children}
-            </AppMotionProvider>
+              <Header />
+              <AppMotionProvider>
+                <AppConnectionHandler>
+                  {children}
+                </AppConnectionHandler>
+              </AppMotionProvider>
           </AppWalletProvider>
-
       </AppThemeProvider>
       </body>
     </html>

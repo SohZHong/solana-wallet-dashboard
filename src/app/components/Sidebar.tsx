@@ -92,8 +92,9 @@ const Sidebar = ({ items }: SidebarComponentProps) => {
                                   return (
                                       <li className='font-bold p-2' key={title}>
                                           <Link
-                                              href={href}
-                                              className={`flex items-center gap-5 p-3 rounded transition-all hover:bg-brand-purple dark:hover:text-white hover:text-white ${isActive ? 'dark:text-brand-blue text-brand-purple' : ''}`}
+                                            onClick={closeSideBar}
+                                            href={href}
+                                            className={`flex items-center gap-5 p-3 rounded transition-all hover:bg-brand-purple dark:hover:text-white hover:text-white ${isActive ? 'dark:text-brand-blue text-brand-purple' : ''}`}
                                           >
                                               <motion.div {...framerText(index)}>{Icon}</motion.div>
                                               <motion.span {...framerText(index)} className='text-left'>{title}</motion.span>

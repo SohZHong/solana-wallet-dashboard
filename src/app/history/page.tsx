@@ -2,7 +2,6 @@
 
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import React, { useEffect, useState } from "react";
-import ConnectNotice from "../components/ConnectNotice";
 import { ParsedInstruction, ParsedTransactionWithMeta, PublicKey } from "@solana/web3.js";
 import {
     Table,
@@ -84,68 +83,62 @@ export default function History() {
     };
 
     return (
-        <React.Fragment>
-            {publicKey ? (
-                <div className="w-screen md:p-5 p-2">
-                    <h1 className="lg:text-2xl md:text-xl sm:text-lg font-bold">Transaction History</h1>
-                    <Table className="lg:my-4 md:my-2" aria-label="Transaction History">
-                        <TableHeader>
-                            <TableColumn>DATE</TableColumn>
-                            <TableColumn>TXID</TableColumn>
-                            <TableColumn>TYPE</TableColumn>
-                            <TableColumn>OUTGOING</TableColumn>
-                            <TableColumn>INGOING</TableColumn>
-                        </TableHeader>
-                        <TableBody>
-                            {
-                                transactions.length === 0 ?
-                                <TableRow>
-                                    <TableCell colSpan={5} className="text-center">
-                                        No transactions found
+        <div className="w-screen md:p-5 p-2">
+            <h1 className="lg:text-2xl md:text-xl sm:text-lg font-bold">Transaction History</h1>
+            <Table className="lg:my-4 md:my-2" aria-label="Transaction History">
+                <TableHeader>
+                    <TableColumn>DATE</TableColumn>
+                    <TableColumn>TXID</TableColumn>
+                    <TableColumn>TYPE</TableColumn>
+                    <TableColumn>OUTGOING</TableColumn>
+                    <TableColumn>INGOING</TableColumn>
+                </TableHeader>
+                <TableBody>
+                    {
+                        transactions.length === 0 ?
+                        <TableRow>
+                            <TableCell colSpan={5} className="text-center">
+                                No transactions found
+                            </TableCell>
+                            <TableCell className="hidden"> </TableCell>
+                            <TableCell className="hidden"> </TableCell>
+                            <TableCell className="hidden"> </TableCell>
+                            <TableCell className="hidden"> </TableCell>
+                        </TableRow>
+                        :
+                        transactions.map((tx, index) => {
+                            const { transferType, isOutgoing, amount }= tx ? getTransactionDetails(tx.transaction.message.instructions as ParsedInstruction[]) : { transferType: 'Invalid', isOutgoing: false, amount: 0 };
+                            return (
+                                <TableRow key={index}>
+                                    <TableCell>
+                                        {tx?.blockTime ? new Date(tx.blockTime * 1000).toLocaleString() : 'N/A'}
                                     </TableCell>
-                                    <TableCell className="hidden"> </TableCell>
-                                    <TableCell className="hidden"> </TableCell>
-                                    <TableCell className="hidden"> </TableCell>
-                                    <TableCell className="hidden"> </TableCell>
-                                </TableRow>:
-                                transactions.map((tx, index) => {
-                                    const { transferType, isOutgoing, amount }= tx ? getTransactionDetails(tx.transaction.message.instructions as ParsedInstruction[]) : { transferType: 'Invalid', isOutgoing: false, amount: 0 };
-                                    return (
-                                        <TableRow key={index}>
-                                            <TableCell>
-                                                {tx?.blockTime ? new Date(tx.blockTime * 1000).toLocaleString() : 'N/A'}
-                                            </TableCell>
-                                            <TableCell>
-                                                {tx?.transaction.signatures[0]}
-                                            </TableCell>
-                                            <TableCell>
-                                                {transferType}
-                                            </TableCell>
-                                            <TableCell>
-                                                {isOutgoing && 
-                                                    <React.Fragment>
-                                                        {amount}
-                                                    </React.Fragment>
-                                                }
-                                            </TableCell>
-                                            <TableCell>
-                                                {isOutgoing! && 
-                                                    <React.Fragment>
-                                                        {amount}
-                                                    </React.Fragment>
-                                                }
-                                            </TableCell>
-                                        </TableRow>
-                                    )
-                                })
-                            }
-                        </TableBody>
-                    </Table>
-                </div>
-            ) : 
-            (
-                <ConnectNotice />
-            )}
-        </React.Fragment>
+                                    <TableCell>
+                                        {tx?.transaction.signatures[0]}
+                                    </TableCell>
+                                    <TableCell>
+                                        {transferType}
+                                    </TableCell>
+                                    <TableCell>
+                                        {isOutgoing && 
+                                            <React.Fragment>
+                                                {amount}
+                                            </React.Fragment>
+                                        }
+                                    </TableCell>
+                                    <TableCell>
+                                        {isOutgoing! && 
+                                            <React.Fragment>
+                                                {amount}
+                                            </React.Fragment>
+                                        }
+                                    </TableCell>
+                                </TableRow>
+                            )
+                        })
+                    }
+                </TableBody>
+            </Table>
+        </div>
     );
 }

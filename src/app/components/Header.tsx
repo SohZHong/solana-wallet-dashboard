@@ -1,4 +1,5 @@
 "use client";
+import dynamic from 'next/dynamic';
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import ThemeSlider from "./ThemeSlider";
 import Image from "next/image";
@@ -7,6 +8,11 @@ import HistoryIcon from "./icons/HistoryIcon";
 import Sidebar, {SidebarProps} from "./Sidebar";
 
 export default function Header(){
+
+    const WalletMultiButtonDynamic = dynamic(
+        async () => (await import('@solana/wallet-adapter-react-ui')).WalletMultiButton,
+        { ssr: false }
+    );
 
     const sideBarItems: SidebarProps[] = [
         {title: "Dashboard", Icon: <DashboardIcon className="w-7 h-auto"/>, href: "/"},
@@ -27,7 +33,7 @@ export default function Header(){
                 />
             </div>
             <div className="flex items-center flex-row gap-4">
-                <WalletMultiButton style={{}}/>
+                <WalletMultiButtonDynamic style={{}}/>
                 <ThemeSlider />
             </div>
         </header>
