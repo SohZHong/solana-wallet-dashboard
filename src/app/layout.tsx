@@ -30,9 +30,7 @@ export default function RootLayout({
           <AppWalletProvider>
           <AppMotionProvider>
             <Header />
-            <main className="flex items-center justify-center h-screen">
               {children}
-            </main>
             </AppMotionProvider>
           </AppWalletProvider>
 

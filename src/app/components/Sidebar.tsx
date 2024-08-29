@@ -4,6 +4,7 @@ import HamburgerIcon from './icons/HamburgerIcon'
 import React from 'react'
 import Image from "next/image";
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 
 const framerSidebarBackground = {
     initial: { opacity: 0 },
@@ -39,10 +40,9 @@ interface SidebarComponentProps {
   items: SidebarProps[];
 }
 
-const Sidebar = ({ items }: SidebarComponentProps) => { // Destructure items from props
+const Sidebar = ({ items }: SidebarComponentProps) => {
   const [open, setOpen] = useState(false);
   const toggleSidebar = () => setOpen((prev) => !prev);
-
   const closeSideBar = () => {
       setOpen(false);
   };
@@ -88,11 +88,12 @@ const Sidebar = ({ items }: SidebarComponentProps) => { // Destructure items fro
                           <ul>
                               {items.map((item, index) => {
                                   const { title, href, Icon } = item;
+                                  const isActive = usePathname() === href;
                                   return (
                                       <li className='font-bold p-2' key={title}>
                                           <Link
                                               href={href}
-                                              className="flex items-center gap-5 p-3 rounded transition-all hover:bg-brand-purple hover:text-white"
+                                              className={`flex items-center gap-5 p-3 rounded transition-all hover:bg-brand-purple dark:hover:text-white hover:text-white ${isActive ? 'dark:text-brand-blue text-brand-purple' : ''}`}
                                           >
                                               <motion.div {...framerText(index)}>{Icon}</motion.div>
                                               <motion.span {...framerText(index)} className='text-left'>{title}</motion.span>
