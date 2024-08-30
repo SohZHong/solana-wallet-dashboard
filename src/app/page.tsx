@@ -6,7 +6,9 @@ import DashboardIcon from "./components/icons/DashboardIcon";
 import ContainerDiv from "./components/ContainerDiv"
 import { LAMPORTS_PER_SOL } from "@solana/web3.js";
 import { useState, useEffect } from "react";
-import axios from "axios";
+import { Table, TableBody, TableCell, TableColumn, TableHeader, TableRow } from "@nextui-org/table";
+import { fetchTokenPrice } from "@/api/token";
+import {TOKEN_PROGRAM_ID} from '@solana/spl-token'
 
 export default function Home() {
   const { connection } = useConnection();
@@ -17,29 +19,44 @@ export default function Home() {
   }
   const [balance, setBalance] = useState<number>(0);
   const [currencyValue, setCurrencyValue] = useState<number>(0);
+  const [assets, setAssets] = useState([]);
 
   useEffect(() => {
       if (publicKey) {
           (async function getBalanceEvery10Seconds() {
-              const newBalance = await connection.getBalance(publicKey);
-              setBalance(newBalance / LAMPORTS_PER_SOL);
-              setTimeout(getBalanceEvery10Seconds, 10000);
+            const newBalance = await connection.getBalance(publicKey);
+            setBalance(newBalance / LAMPORTS_PER_SOL);
+            setTimeout(getBalanceEvery10Seconds, 10000);
           })();
+          // (async function getAccountAssetsEvery10Seconds() {
+          //   const tokenList = await connection.getTokenLargestAccounts(publicKey);
+          //   setTimeout(getAccountAssetsEvery10Seconds, 10000);
+          //   console.log(tokenList);
+          // })
       }
   }, [publicKey, connection]);
 
+  async function getAccountAssetsEvery10Seconds() {
+    if (publicKey) {
+      const tokenList = await connection.getTokenAccountsByOwner(publicKey, {programId: TOKEN_PROGRAM_ID});
+      setTimeout(getAccountAssetsEvery10Seconds, 10000);
+      console.log(tokenList);
+    }
+  }
+
+  getAccountAssetsEvery10Seconds();
+
   useEffect(() => {
     const fetchSolPrice = async () => {
-      await axios.get(
-        "https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd"
-      ).then((response) => {
-        const { solana } = response.data
-        const solToUsdRate = solana.usd;
-        setCurrencyValue(balance * solToUsdRate);
-      }).catch((err) => {
-        console.error("Failed to fetch SOL price:", err);
-
-      })
+      await fetchTokenPrice("solana").then((response) => {
+        let value = 0;
+        if (response) {
+          const { solana } = response.data
+          const solToUsdRate = solana.usd;
+          value = balance * solToUsdRate;
+        }
+        setCurrencyValue(value);
+      });
     }
     if (balance > 0) {
       fetchSolPrice();
@@ -55,13 +72,26 @@ export default function Home() {
       <div className="lg:grid lg:grid-cols-2 flex flex-col gap-10 lg:my-4 my-2">
         <ContainerDiv>
           <h4 className="text-gray-400">Net Worth</h4>
-          <h1 className="lg:text-5xl text-4xl">{balance}</h1>
-          <h1 className="lg:text-3xl text-2xl">{currencyValue.toFixed(2)} USD</h1>
+          <h1 className="lg:text-5xl text-4xl">${currencyValue.toFixed(2)} USD</h1>
+          <h1 className="lg:text-3xl text-2xl">{balance}</h1>
         </ContainerDiv>
         <ContainerDiv>
           Hello
         </ContainerDiv>
       </div>
+      <Table 
+            className="lg:my-4 my-2" 
+            aria-label="Account Assets"
+      >
+        <TableHeader>
+            <TableColumn>ASSET</TableColumn>
+            <TableColumn>AMOUNT</TableColumn>
+            <TableColumn>VALUE</TableColumn>
+        </TableHeader>
+        <TableBody emptyContent={"No assets found"}>
+          {[]}
+        </TableBody>
+      </Table>
       <AppButton onClick={handleAirDrop}>AirDrop</AppButton>
     </div>
   );
