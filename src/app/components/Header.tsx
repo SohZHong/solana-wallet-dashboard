@@ -6,6 +6,7 @@ import Image from "next/image";
 import DashboardIcon from "./icons/DashboardIcon";
 import HistoryIcon from "./icons/HistoryIcon";
 import Sidebar, {SidebarProps} from "./Sidebar";
+import SettingsDropdown from './SettingsDropdown';
 
 export default function Header(){
 
@@ -33,8 +34,9 @@ export default function Header(){
                 />
             </div>
             <div className="flex items-center flex-row gap-4">
-                <WalletMultiButtonDynamic style={{}}/>
-                <ThemeSlider />
+                {/* <WalletMultiButtonDynamic style={{}}/>
+                <ThemeSlider /> */}
+                <SettingsDropdown />
             </div>
         </header>
 

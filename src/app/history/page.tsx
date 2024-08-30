@@ -12,7 +12,7 @@ import {
     TableCell
   } from "@nextui-org/table";
 import { Pagination } from "@nextui-org/pagination"
-import AppButton from "../components/AppButton";
+import HistoryIcon from "../components/icons/HistoryIcon";
 
 export default function History() {
     const { publicKey } = useWallet();
@@ -68,7 +68,6 @@ export default function History() {
     }
 
     const getTransactionChange = (tx: ParsedTransactionWithMeta | null) => {
-        console.log(tx?.meta);
         if (!tx?.meta || !tx.meta.preBalances || !tx.meta.postBalances) {
             return 0; // Return 0 if no balance information is available
         }
@@ -101,10 +100,13 @@ export default function History() {
     };
 
     return (
-        <div className=" w-screen md:p-5 p-2">
-            <h1 className="lg:text-2xl md:text-xl sm:text-lg font-bold">Transaction History</h1>
+        <div className=" w-screen p-5">
+            <div className="flex items-center gap-4">
+                <HistoryIcon className="w-8 h-auto"/>
+                <h1 className="lg:text-2xl text-xl font-bold">Transaction History</h1>
+            </div>
             <Table 
-            className="lg:my-4 md:my-2" 
+            className="lg:my-4 my-2" 
             aria-label="Transaction History"
             bottomContent={
                 <div className="flex w-full justify-center">
