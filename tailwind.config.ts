@@ -23,7 +23,8 @@ const config: Config = {
         "brand-grey": "#dcd6ec",
         "brand-violet": "#f5f2ff",
         "white-mode": "e5e5e5",
-        "extra-light-grey": "#e1e1e1"
+        "extra-light-grey": "#e1e1e1",
+        "brand-gray": "#18181b"
       }
     },
   },
