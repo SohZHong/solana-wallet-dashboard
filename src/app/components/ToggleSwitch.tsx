@@ -43,9 +43,4 @@ const ToggleSwitch = ({ id, name, checked, onChange, optionLabels, small, disabl
     );
 };
 
-// Set optionLabels for rendering.
-ToggleSwitch.defaultProps = {
-    optionLabels: ["Yes", "No"],
-};
-
 export default ToggleSwitch;

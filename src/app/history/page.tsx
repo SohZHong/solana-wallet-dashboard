@@ -1,8 +1,8 @@
 "use client";
 
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
-import React, { useEffect, useState } from "react";
-import { ParsedInstruction, ParsedTransactionWithMeta, PublicKey } from "@solana/web3.js";
+import React, { useEffect, useMemo, useState } from "react";
+import { LAMPORTS_PER_SOL, ParsedInstruction, ParsedTransactionWithMeta, PublicKey } from "@solana/web3.js";
 import {
     Table,
     TableHeader,
@@ -11,25 +11,43 @@ import {
     TableRow,
     TableCell
   } from "@nextui-org/table";
+import { Pagination } from "@nextui-org/pagination"
+import AppButton from "../components/AppButton";
 
 export default function History() {
     const { publicKey } = useWallet();
     const { connection } = useConnection();
-    const [ transactions, setTransactions] = useState<(ParsedTransactionWithMeta | null)[]>([]);
+    const [transactions, setTransactions] = useState<(ParsedTransactionWithMeta | null)[]>([]);
+    const [lastSignature, setLastSignature] = useState<string | null>(null);
+    const [page, setPage] = useState(1);
+    const rowsPerPage = 10;
 
+    const pages = Math.ceil(transactions.length / rowsPerPage);
+    const items = useMemo(() => {
+        const start = (page - 1) * rowsPerPage;
+        const end = start + rowsPerPage;
+    
+        return transactions.slice(start, end);
+    }, [page, transactions]);
+    
     useEffect(() => {
         if (!publicKey) return; // Exit if no public key is available
     
         const fetchTransactionData = async () => {
           try {
             // Get signatures for the current wallet address
-            const fetchedSignatures = await connection.getSignaturesForAddress(publicKey);
-    
-            // Extract signature strings to pass into getTransactions
-            const signatureList = fetchedSignatures.map(sigInfo => sigInfo.signature);
-    
+            const fetchedSignatures = await connection.getSignaturesForAddress(publicKey, {
+                before: lastSignature || undefined,
+                limit: 15
+            })
+            // Get the last signature to fetch next batch
+            setLastSignature(fetchedSignatures[fetchedSignatures.length - 1].signature);
             // Fetch the transactions based on the signatures
-            const fetchedTransactions = await connection.getParsedTransactions(signatureList);
+            const fetchedTransactions = await Promise.all(fetchedSignatures.map(async sigInfo => {
+                const signature = sigInfo.signature;
+                const tx = await connection.getParsedTransaction(signature, {maxSupportedTransactionVersion:0});
+                return tx
+            }))
             setTransactions(fetchedTransactions);
         } catch (error) {
         console.error('Failed to fetch transactions:', error);
@@ -38,76 +56,81 @@ export default function History() {
         fetchTransactionData();
     }, [publicKey, connection]);
 
-    const getTransactionDetails = (instructions: ParsedInstruction[]) => {
-        let transferType: string = 'Invalid';
-        let isOutgoing: boolean = false;
-        let amount: number = 0;
-        if (publicKey) {
-            for (let instruction of instructions) {
-                if (instruction.program === 'spl-token') {
-                    const { type, info } = instruction.parsed;
-                    switch (type) {
-                        case 'transfer':
-                            transferType = 'Transfer';
-                            info.amount = amount;
-                            break;
-                        case 'transferChecked':
-                            transferType = 'Transfer';
-                            info.amount = amount;
-                            break;
-                        case 'mintTo':
-                            transferType = 'Receive';
-                            info.amount = amount;
-                            break;
-                        case 'burn':
-                            transferType = 'Burn';
-                            info.amount = amount;
-                            break;
-                        default:
-                            transferType = 'Unknown';
-                            break;
-                    }
-    
-                    // Determine if it's outgoing or incoming
-                    if (type === 'transfer' || type === 'transferChecked') {
-                        if (info.source && new PublicKey(info.source).equals(publicKey)) {
-                            isOutgoing = true; // Outgoing transaction
-                        } else if (info.destination && new PublicKey(info.destination).equals(publicKey)) {
-                            isOutgoing = false; // Incoming transaction
-                        }
-                    }
-                }
-            }
+    // Find index of user's public key in accountKeys
+    const findAccountIndex = (tx: ParsedTransactionWithMeta | null): number => {
+        if (!tx?.transaction || !publicKey) {
+            return -1;
         }
-        return { transferType, isOutgoing, amount };
+        const accountIndex = tx.transaction.message.accountKeys.findIndex((key) =>
+            key.pubkey.equals(publicKey)
+        );
+        return accountIndex;
+    }
+
+    const getTransactionChange = (tx: ParsedTransactionWithMeta | null) => {
+        console.log(tx?.meta);
+        if (!tx?.meta || !tx.meta.preBalances || !tx.meta.postBalances) {
+            return 0; // Return 0 if no balance information is available
+        }
+
+        const accountIndex = findAccountIndex(tx);
+        if (accountIndex === -1) {
+            return '0.00'; // User's public key not involved in this transaction
+        }
+
+        const preBalanceLamports = tx.meta.preBalances[accountIndex] || 0;
+        const postBalanceLamports = tx.meta.postBalances[accountIndex] || 0;
+        const change = (postBalanceLamports - preBalanceLamports) / LAMPORTS_PER_SOL;
+
+        return change.toFixed(2); // Calculate the change
+    };
+
+    const getPostBalance = (tx: ParsedTransactionWithMeta | null) => {
+        if (!tx?.meta || !tx.meta.postBalances || !tx.transaction.message.accountKeys || !publicKey) {
+            return 'N/A'; // Return 'N/A' if no post balance information is available
+        }
+        const accountIndex = findAccountIndex(tx);
+        if (accountIndex === -1) {
+            return 'N/A'; // User's public key not involved in this transaction
+        }
+        // Get the corresponding post balance for the user's account
+        const postBalanceLamports = tx.meta.postBalances[accountIndex];
+        const postBalance = (postBalanceLamports / LAMPORTS_PER_SOL).toFixed(2);
+    
+        return postBalance;
     };
 
     return (
-        <div className="w-screen md:p-5 p-2">
+        <div className=" w-screen md:p-5 p-2">
             <h1 className="lg:text-2xl md:text-xl sm:text-lg font-bold">Transaction History</h1>
-            <Table className="lg:my-4 md:my-2" aria-label="Transaction History">
+            <Table 
+            className="lg:my-4 md:my-2" 
+            aria-label="Transaction History"
+            bottomContent={
+                <div className="flex w-full justify-center">
+                    <Pagination
+                    isCompact
+                    showControls
+                    showShadow
+                    color="default"
+                    page={page}
+                    total={pages}
+                    onChange={(page) => setPage(page)}
+                    />
+                </div>
+            }>
                 <TableHeader>
                     <TableColumn>DATE</TableColumn>
-                    <TableColumn>TXID</TableColumn>
-                    <TableColumn>TYPE</TableColumn>
-                    <TableColumn>OUTGOING</TableColumn>
-                    <TableColumn>INGOING</TableColumn>
+                    <TableColumn maxWidth={100}>TXID</TableColumn>
+                    <TableColumn maxWidth={150}>STATUS</TableColumn>
+                    <TableColumn>CHANGE</TableColumn>
+                    <TableColumn>POST BALANCE</TableColumn>
                 </TableHeader>
-                <TableBody>
+                <TableBody emptyContent={" No transactions found"}>
                     {
-                        transactions.length === 0 ?
-                        <TableRow>
-                            <TableCell colSpan={5} className="text-center">
-                                No transactions found
-                            </TableCell>
-                            <TableCell className="hidden"> </TableCell>
-                            <TableCell className="hidden"> </TableCell>
-                            <TableCell className="hidden"> </TableCell>
-                            <TableCell className="hidden"> </TableCell>
-                        </TableRow>
-                        :
-                        transactions.map((tx, index) => {
-                            const { transferType, isOutgoing, amount }= tx ? getTransactionDetails(tx.transaction.message.instructions as ParsedInstruction[]) : { transferType: 'Invalid', isOutgoing: false, amount: 0 };
+                        items.map((tx, index) => {
+                            let transactionChange = getTransactionChange(tx);
+                            let postBalance = getPostBalance(tx);
                             return (
                                 <TableRow key={index}>
                                     <TableCell>
@@ -117,20 +140,17 @@ export default function History() {
                                         {tx?.transaction.signatures[0]}
                                     </TableCell>
                                     <TableCell>
-                                        {transferType}
+                                        {tx?.meta?.err ? 'Failed' : 'Success'}
                                     </TableCell>
                                     <TableCell>
-                                        {isOutgoing && 
-                                            <React.Fragment>
-                                                {amount}
-                                            </React.Fragment>
+                                        {
+                                            transactionChange === 0 ? '-' : '◎' + transactionChange
                                         }
                                     </TableCell>
                                     <TableCell>
-                                        {isOutgoing! && 
-                                            <React.Fragment>
-                                                {amount}
-                                            </React.Fragment>
+                                        ◎
+                                        {
+                                            postBalance
                                         }
                                     </TableCell>
                                 </TableRow>

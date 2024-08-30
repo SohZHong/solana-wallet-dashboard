@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@nextui-org/pagination": "^2.0.35",
     "@nextui-org/system": "^2.2.5",
     "@nextui-org/table": "^2.0.39",
     "@nextui-org/theme": "^2.2.9",
@@ -17,11 +18,12 @@
     "@solana/wallet-adapter-react-ui": "^0.9.35",
     "@solana/wallet-adapter-wallets": "^0.19.32",
     "@solana/web3.js": "^1.95.3",
+    "eslint-config-next": "^14.2.7",
     "framer-motion": "^11.3.30",
-    "next": "14.2.6",
+    "next": "^14.2.7",
     "next-themes": "^0.3.0",
-    "react": "^18",
-    "react-dom": "^18"
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
   },
   "devDependencies": {
     "@types/node": "^20",

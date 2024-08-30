@@ -25,12 +25,12 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body 
-        className={`${dmSans.className} overflow-hidden dark:text-white text-black dark:bg-black bg-white-mode`}
+        className={`${dmSans.className} h-screen overflow-x-hidden dark:text-white text-black dark:bg-black bg-white-mode`}
       >
       <AppThemeProvider attribute="class" defaultTheme={theme} enableSystem>
           <AppWalletProvider>
               <Header />
-              <AppMotionProvider>
+              <AppMotionProvider mode="wait">
                 <AppConnectionHandler>
                   {children}
                 </AppConnectionHandler>
