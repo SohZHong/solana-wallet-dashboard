@@ -22,7 +22,7 @@ export default function Header(){
 
     return (
         <header className="flex flex-row items-center justify-between p-2">
-            <div className="flex items-center gap-4">
+            <div className="flex items-center lg:gap-4 gap-1">
                 <Sidebar 
                     items={sideBarItems}
                 />
@@ -33,9 +33,8 @@ export default function Header(){
                     width={175}
                 />
             </div>
-            <div className="flex items-center flex-row gap-4">
-                {/* <WalletMultiButtonDynamic style={{}}/>
-                <ThemeSlider /> */}
+            <div className="flex items-center flex-row lg:gap-4 gap-1">
+                <WalletMultiButtonDynamic className='text-base p-1 bg-transparent'/>
                 <SettingsDropdown />
             </div>
         </header>
