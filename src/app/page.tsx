@@ -7,13 +7,72 @@ import ContainerDiv from "./components/ContainerDiv"
 import { LAMPORTS_PER_SOL, ParsedAccountData } from "@solana/web3.js";
 import { useState, useEffect } from "react";
 import { Table, TableBody, TableCell, TableColumn, TableHeader, TableRow } from "@nextui-org/table";
-import { fetchTokenByAccount, fetchTokenDataById, fetchTokenList, fetchTokenPrice } from "@/api/token";
+import { fetchTokenByAccount, fetchTokenPrice } from "@/api/token";
+import Image from "next/image";
+import axios from "axios";
+import useSWR from "swr";
 
 interface TokenBalance {
   parsedAccountInfo: ParsedAccountData;
   mintAddress: string;
   tokenBalance: number;
+  image: string,
+  symbol: string,
+  price: number
 }
+
+interface TokenList {
+  id: string;
+  symbol: string;
+  name: string;
+}
+
+interface TokenListMapping {
+  [key: string]: TokenList;
+}
+
+// SWR fetcher function
+const fetcher = (url: string) => axios.get(url).then(res => res.data);
+
+// Custom hook to fetch token data by ID
+export const fetchTokenDataById = (tokenId: string) => {
+  const { data, error } = useSWR(`https://api.coingecko.com/api/v3/coins/${tokenId}`, fetcher, {
+    refreshInterval: 3600000, // Refresh every 1 hour
+    revalidateOnFocus: false, // Prevent revalidation when window gains focus
+  });
+
+  return {
+    data,
+    isLoading: !error && !data,
+    isError: error
+  };
+};
+
+// Fetch token list
+export const fetchTokenList = () => {
+  const { data, error } = useSWR('https://api.coingecko.com/api/v3/coins/list', fetcher, {
+    refreshInterval: 3600000, // Refresh every 1 hour
+    revalidateOnFocus: false, // Prevent revalidation when window gains focus
+  });
+
+  if (error) return { tokens: {}, isLoading: false, isError: true };
+  if (!data) return { tokens: {}, isLoading: true, isError: false };
+
+  // Filter tokens to only those that have Solana platforms
+  const solanaTokens: TokenListMapping = {};
+  for (const token of data) {
+    if (token.platforms && token.platforms.solana) {
+      const mint: string = token.platforms.solana;
+      solanaTokens[mint] = {
+        id: token.id,
+        symbol: token.symbol,
+        name: token.name,
+      };  
+    }
+  }
+
+  return { tokens: solanaTokens, isLoading: false, isError: false };
+};
 
 export default function Home() {
   const { connection } = useConnection();
@@ -28,11 +87,8 @@ export default function Home() {
           (async function getBalanceEvery10Seconds() {
             const newBalance = await connection.getBalance(publicKey);
             setBalance(newBalance / LAMPORTS_PER_SOL);
+            setTimeout(getBalanceEvery10Seconds, 10000);
           })();
-          // (async function getAccountAssetsEvery10Seconds() {
-          //   const tokenAccounts = await fetchTokenByAccount(publicKey, connection)
-          //   setTokenBalances(tokenAccounts);
-          // })();
       }
   }, [publicKey, connection]);
 
@@ -49,7 +105,7 @@ export default function Home() {
         if (!tokenInfo) return null; // Skip if no token info available
 
         const { id } = tokenInfo;
-        const tokenData = await fetchTokenDataById(id); // Fetch price using CoinGecko ID
+        const tokenData = fetchTokenDataById(id); // Fetch price using CoinGecko ID
         return {
           ...token,
           image: tokenData.data.image.small,
@@ -67,20 +123,26 @@ export default function Home() {
 
   useEffect(() => {
     const fetchSolPrice = async () => {
+      let totalValue = 0;
       await fetchTokenPrice("solana").then((response) => {
-        let value = 0;
         if (response) {
           const { solana } = response.data
           const solToUsdRate = solana.usd;
-          value = balance * solToUsdRate;
+          totalValue = balance * solToUsdRate;
         }
-        setCurrencyValue(value);
+        tokenBalances.forEach(token => {
+          if (token.price) {
+            totalValue += token.tokenBalance * token.price;
+          }
+        });
+  
+        setCurrencyValue(totalValue);
       });
     }
     if (balance > 0) {
       fetchSolPrice();
     }
-  }, [balance]);
+  }, [balance, tokenBalances]);
 
   const handleAirDrop = async (event: React.MouseEvent<HTMLButtonElement>) => {
     await getAirdropOnClick(connection, publicKey);
@@ -96,7 +158,6 @@ export default function Home() {
         <ContainerDiv>
           <h4 className="text-gray-400">Net Worth</h4>
           <h1 className="lg:text-5xl text-4xl">${currencyValue.toFixed(2)} USD</h1>
-          <h1 className="lg:text-3xl text-2xl">{balance}</h1>
         </ContainerDiv>
         <ContainerDiv>
           Hello
@@ -112,7 +173,28 @@ export default function Home() {
             <TableColumn>VALUE</TableColumn>
         </TableHeader>
         <TableBody emptyContent={"No assets found"}>
-          {[]}
+          {tokenBalances.map((token, index) => {
+            return (
+              <TableRow key={index}>
+                <TableCell>
+                  <Image 
+                    src={token.image}
+                    className="w-2 h-auto"
+                    width={undefined}
+                    height={undefined}
+                    alt={token.symbol}
+                  />
+                  {token.symbol}
+                </TableCell>
+                <TableCell>
+                  {token.tokenBalance}
+                </TableCell>
+                <TableCell>
+                  ${token.price} USD
+                </TableCell>
+              </TableRow>
+            )
+          })}
         </TableBody>
       </Table>
       <AppButton onClick={handleAirDrop}>AirDrop</AppButton>
