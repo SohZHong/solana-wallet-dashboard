@@ -4,47 +4,66 @@ import getAirdropOnClick from "../api/airdrop";
 import AppButton from "./components/AppButton";
 import DashboardIcon from "./components/icons/DashboardIcon";
 import ContainerDiv from "./components/ContainerDiv"
-import { LAMPORTS_PER_SOL } from "@solana/web3.js";
+import { LAMPORTS_PER_SOL, ParsedAccountData } from "@solana/web3.js";
 import { useState, useEffect } from "react";
 import { Table, TableBody, TableCell, TableColumn, TableHeader, TableRow } from "@nextui-org/table";
-import { fetchTokenPrice } from "@/api/token";
-import {TOKEN_PROGRAM_ID} from '@solana/spl-token'
+import { fetchTokenByAccount, fetchTokenDataById, fetchTokenList, fetchTokenPrice } from "@/api/token";
+
+interface TokenBalance {
+  parsedAccountInfo: ParsedAccountData;
+  mintAddress: string;
+  tokenBalance: number;
+}
 
 export default function Home() {
   const { connection } = useConnection();
   const { publicKey } = useWallet();
-
-  const handleAirDrop = async (event: React.MouseEvent<HTMLButtonElement>) => {
-    await getAirdropOnClick(connection, publicKey);
-  }
+  const { tokens, isLoading, isError } = fetchTokenList();
   const [balance, setBalance] = useState<number>(0);
   const [currencyValue, setCurrencyValue] = useState<number>(0);
-  const [assets, setAssets] = useState([]);
+  const [tokenBalances, setTokenBalances] = useState<TokenBalance[]>([]);
 
   useEffect(() => {
       if (publicKey) {
           (async function getBalanceEvery10Seconds() {
             const newBalance = await connection.getBalance(publicKey);
             setBalance(newBalance / LAMPORTS_PER_SOL);
-            setTimeout(getBalanceEvery10Seconds, 10000);
           })();
           // (async function getAccountAssetsEvery10Seconds() {
-          //   const tokenList = await connection.getTokenLargestAccounts(publicKey);
-          //   setTimeout(getAccountAssetsEvery10Seconds, 10000);
-          //   console.log(tokenList);
-          // })
+          //   const tokenAccounts = await fetchTokenByAccount(publicKey, connection)
+          //   setTokenBalances(tokenAccounts);
+          // })();
       }
   }, [publicKey, connection]);
 
-  async function getAccountAssetsEvery10Seconds() {
-    if (publicKey) {
-      const tokenList = await connection.getTokenAccountsByOwner(publicKey, {programId: TOKEN_PROGRAM_ID});
-      setTimeout(getAccountAssetsEvery10Seconds, 10000);
-      console.log(tokenList);
-    }
-  }
+  useEffect(() => {
+    if (isLoading || isError || !tokens || !publicKey) return;
 
-  getAccountAssetsEvery10Seconds();
+    const processTokenAccounts = async () => {
+      const tokenAccounts = await fetchTokenByAccount(publicKey, connection);
+
+      const tokenDataPromises = tokenAccounts.map(async (token) => {
+        const mintAddress = token.mintAddress;
+        const tokenInfo = tokens[mintAddress];
+
+        if (!tokenInfo) return null; // Skip if no token info available
+
+        const { id } = tokenInfo;
+        const tokenData = await fetchTokenDataById(id); // Fetch price using CoinGecko ID
+        return {
+          ...token,
+          image: tokenData.data.image.small,
+          symbol: tokenInfo.symbol,
+          price: tokenData.data.market_data.current_price.usd
+        };
+      });
+
+      const tokenData = await Promise.all(tokenDataPromises);
+      setTokenBalances(tokenData.filter((data) => data !== null));
+    };
+
+    processTokenAccounts();
+  }, [tokens, publicKey, connection]);
 
   useEffect(() => {
     const fetchSolPrice = async () => {
@@ -62,6 +81,10 @@ export default function Home() {
       fetchSolPrice();
     }
   }, [balance]);
+
+  const handleAirDrop = async (event: React.MouseEvent<HTMLButtonElement>) => {
+    await getAirdropOnClick(connection, publicKey);
+  }
 
   return (
     <div className="w-screen p-5">
