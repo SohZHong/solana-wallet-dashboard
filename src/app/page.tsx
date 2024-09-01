@@ -117,13 +117,10 @@ export const Home = () => {
           <DashboardIcon className="w-8 h-auto"/>
           <h1 className="lg:text-2xl text-xl font-bold">Dashboard</h1>
       </div>
-      <div className="lg:grid lg:grid-cols-2 flex flex-col gap-10 lg:my-4 my-2">
+      <div className="lg:my-4 my-2">
         <ContainerDiv>
           <h4 className="text-gray-400">Net Worth</h4>
-          <h1 className="lg:text-5xl text-4xl">${currencyValue.toFixed(2)} USD</h1>
-        </ContainerDiv>
-        <ContainerDiv>
-          Hello
+          <h1 className="text-center lg:text-5xl text-4xl">${currencyValue.toFixed(2)} USD</h1>
         </ContainerDiv>
       </div>
       <Table 
@@ -135,7 +132,7 @@ export const Home = () => {
             <TableColumn>AMOUNT</TableColumn>
             <TableColumn>VALUE</TableColumn>
         </TableHeader>
-        <TableBody emptyContent={"No assets found"}>
+        <TableBody emptyContent={"No assets found"} items={tokenBalances}>
           {tokenBalances.map((token, index) => {
             return (
               <TableRow key={index}>
