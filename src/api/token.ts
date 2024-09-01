@@ -58,7 +58,6 @@ export const fetchTokenList = () => {
       };  
     }
   }
-  console.log(solanaTokens);
   return { tokens: solanaTokens, isLoading: false, isError: false };
 };
 // Custom hook to fetch token data by ID

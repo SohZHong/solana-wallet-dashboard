@@ -4,145 +4,108 @@ import getAirdropOnClick from "../api/airdrop";
 import AppButton from "./components/AppButton";
 import DashboardIcon from "./components/icons/DashboardIcon";
 import ContainerDiv from "./components/ContainerDiv"
-import { LAMPORTS_PER_SOL, ParsedAccountData } from "@solana/web3.js";
-import { useState, useEffect } from "react";
+import { ParsedAccountData } from "@solana/web3.js";
+import { useState, useEffect, useMemo } from "react";
 import { Table, TableBody, TableCell, TableColumn, TableHeader, TableRow } from "@nextui-org/table";
-import { fetchTokenByAccount, fetchTokenPrice } from "@/api/token";
+import { fetchTokenByAccount, fetchTokenDataByIds, fetchTokenList } from "@/api/token";
 import Image from "next/image";
-import axios from "axios";
-import useSWR from "swr";
+import getWalletBalance from "@/api/wallet";
 
 interface TokenBalance {
   parsedAccountInfo: ParsedAccountData;
   mintAddress: string;
   tokenBalance: number;
-  image: string,
+  image?: string,
   symbol: string,
   price: number
 }
 
-interface TokenList {
-  id: string;
-  symbol: string;
-  name: string;
-}
-
-interface TokenListMapping {
-  [key: string]: TokenList;
-}
-
-// SWR fetcher function
-const fetcher = (url: string) => axios.get(url).then(res => res.data);
-
-// Custom hook to fetch token data by ID
-export const fetchTokenDataById = (tokenId: string) => {
-  const { data, error } = useSWR(`https://api.coingecko.com/api/v3/coins/${tokenId}`, fetcher, {
-    refreshInterval: 3600000, // Refresh every 1 hour
-    revalidateOnFocus: false, // Prevent revalidation when window gains focus
-  });
-
-  return {
-    data,
-    isLoading: !error && !data,
-    isError: error
-  };
-};
-
-// Fetch token list
-export const fetchTokenList = () => {
-  const { data, error } = useSWR('https://api.coingecko.com/api/v3/coins/list', fetcher, {
-    refreshInterval: 3600000, // Refresh every 1 hour
-    revalidateOnFocus: false, // Prevent revalidation when window gains focus
-  });
-
-  if (error) return { tokens: {}, isLoading: false, isError: true };
-  if (!data) return { tokens: {}, isLoading: true, isError: false };
-
-  // Filter tokens to only those that have Solana platforms
-  const solanaTokens: TokenListMapping = {};
-  for (const token of data) {
-    if (token.platforms && token.platforms.solana) {
-      const mint: string = token.platforms.solana;
-      solanaTokens[mint] = {
-        id: token.id,
-        symbol: token.symbol,
-        name: token.name,
-      };  
-    }
-  }
-
-  return { tokens: solanaTokens, isLoading: false, isError: false };
-};
-
-export default function Home() {
+export const Home = () => {
   const { connection } = useConnection();
   const { publicKey } = useWallet();
-  const { tokens, isLoading, isError } = fetchTokenList();
+  const { tokens, isLoading: tokensLoading, isError: tokensError } = fetchTokenList();
+  const { data: solanaPriceData, isLoading: solanaPriceLoading } = fetchTokenDataByIds(['solana'], 'usd');
   const [balance, setBalance] = useState<number>(0);
   const [currencyValue, setCurrencyValue] = useState<number>(0);
   const [tokenBalances, setTokenBalances] = useState<TokenBalance[]>([]);
 
-  useEffect(() => {
-      if (publicKey) {
-          (async function getBalanceEvery10Seconds() {
-            const newBalance = await connection.getBalance(publicKey);
-            setBalance(newBalance / LAMPORTS_PER_SOL);
-            setTimeout(getBalanceEvery10Seconds, 10000);
-          })();
-      }
-  }, [publicKey, connection]);
+
+  // Memoized tokens
+  const memoizedTokens = useMemo(() => tokens, [tokensLoading, tokensError]);
+  // Fetch token data by IDs, including Solana
+  const tokenIds = useMemo(() => {
+    if (memoizedTokens) {
+      let ids = Object.values(memoizedTokens).map(token => token.id).filter(id => id);
+      ids.push('solana'); // Add Solana's ID
+      return ids;
+    }
+    return ['solana']; // Ensure 'solana' is included even if there are no other tokens
+  }, [memoizedTokens]);
+
+  const { data: fetchedTokenData } = fetchTokenDataByIds(tokenIds, 'usd');
 
   useEffect(() => {
-    if (isLoading || isError || !tokens || !publicKey) return;
+    if (!publicKey || !connection || tokensLoading || tokensError || !memoizedTokens || !fetchedTokenData) return;
 
-    const processTokenAccounts = async () => {
-      const tokenAccounts = await fetchTokenByAccount(publicKey, connection);
-
-      const tokenDataPromises = tokenAccounts.map(async (token) => {
-        const mintAddress = token.mintAddress;
-        const tokenInfo = tokens[mintAddress];
-
-        if (!tokenInfo) return null; // Skip if no token info available
-
-        const { id } = tokenInfo;
-        const tokenData = fetchTokenDataById(id); // Fetch price using CoinGecko ID
-        return {
-          ...token,
-          image: tokenData.data.image.small,
-          symbol: tokenInfo.symbol,
-          price: tokenData.data.market_data.current_price.usd
-        };
-      });
-
-      const tokenData = await Promise.all(tokenDataPromises);
-      setTokenBalances(tokenData.filter((data) => data !== null));
+    // Function to fetch the wallet balance in Solana
+    const fetchBalance = async () => {
+      const newBalance = await getWalletBalance(connection, publicKey);
+      setBalance(newBalance);
     };
 
-    processTokenAccounts();
-  }, [tokens, publicKey, connection]);
+    // Processing token accounts
+    const processTokenAccounts = async () => {
+      const tokenAccounts = await fetchTokenByAccount(publicKey, connection);
+      
+      // Temporary total value variable to calculate total value
+      let tempTotalValue = 0;
 
-  useEffect(() => {
-    const fetchSolPrice = async () => {
-      let totalValue = 0;
-      await fetchTokenPrice("solana").then((response) => {
-        if (response) {
-          const { solana } = response.data
-          const solToUsdRate = solana.usd;
-          totalValue = balance * solToUsdRate;
+      // Process tokens
+      const tokenData = tokenAccounts.map((token) => {
+        const mintAddress = token.mintAddress;
+        const tokenInfo = memoizedTokens[mintAddress];
+        if (!tokenInfo) return null;
+
+        // Find token data from the fetched data list
+        const tokenData = fetchedTokenData?.find((td) => td.id === tokenInfo.id);
+        if (tokenData && tokenData.current_price) {
+          tempTotalValue += (tokenData.current_price * token.tokenBalance);
         }
-        tokenBalances.forEach(token => {
-          if (token.price) {
-            totalValue += token.tokenBalance * token.price;
-          }
-        });
-  
-        setCurrencyValue(totalValue);
-      });
-    }
-    if (balance > 0) {
-      fetchSolPrice();
-    }
-  }, [balance, tokenBalances]);
+
+        return {
+          ...token,
+          image: tokenData?.image,
+          symbol: tokenInfo.symbol,
+          price: tokenData?.current_price || 0,
+        };
+      }).filter((data) => data !== null);
+
+      // Process Solana's value and add it to the token balances
+      const solanaData = fetchedTokenData?.find(td => td.id === 'solana');
+      if (solanaData && solanaData.current_price) {
+        tempTotalValue += (solanaData.current_price * balance);
+        const solanaTokenBalance = {
+          parsedAccountInfo: {
+            program: "",
+            parsed: undefined,
+            space: 0
+          }, // Solana native balance might not have parsed account info like SPL tokens
+          mintAddress: 'solana', // Placeholder identifier (Won't be using it)
+          tokenBalance: balance,
+          image: solanaData.image,
+          symbol: solanaData.symbol,
+          price: solanaData.current_price,
+        };
+        tokenData.push(solanaTokenBalance); // Add Solana's data to token balances
+      }
+
+      setTokenBalances(tokenData);
+      setCurrencyValue(tempTotalValue); // Set the total value of tokens
+    };
+
+    fetchBalance();
+    processTokenAccounts();
+  }, [publicKey, connection, memoizedTokens, fetchedTokenData, balance]);
 
   const handleAirDrop = async (event: React.MouseEvent<HTMLButtonElement>) => {
     await getAirdropOnClick(connection, publicKey);
@@ -176,15 +139,19 @@ export default function Home() {
           {tokenBalances.map((token, index) => {
             return (
               <TableRow key={index}>
-                <TableCell>
-                  <Image 
+                <TableCell className="flex flex-row gap-2 items-center">
+                {token.image &&                   
+                  <Image
+                    aria-label={token.symbol}
                     src={token.image}
-                    className="w-2 h-auto"
-                    width={undefined}
-                    height={undefined}
+                    className="w-4 h-auto"
+                    width={50}
+                    height={50}
                     alt={token.symbol}
-                  />
+                />}
+                <span className="uppercase">
                   {token.symbol}
+                </span>
                 </TableCell>
                 <TableCell>
                   {token.tokenBalance}
@@ -201,3 +168,5 @@ export default function Home() {
     </div>
   );
 }
+
+export default Home
