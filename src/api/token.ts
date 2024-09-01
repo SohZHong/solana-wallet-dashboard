@@ -3,66 +3,88 @@ import { Connection, GetProgramAccountsFilter, ParsedAccountData, PublicKey } fr
 import axios, { AxiosResponse } from "axios";
 import useSWR from "swr";
 
-// // SWR fetcher function
-// const fetcher = (url: string) => axios.get(url).then((res) => res.data);
+// SWR fetcher function
+const fetcher = (url: string) => axios.get(url).then(res => res.data);
 
-// interface TokenList {
-//   id: string;
-//   symbol: string;
-//   name: string;
-// }
+interface TokenList {
+  id: string;
+  symbol: string;
+  name: string;
+  image?: string,
+  current_price?: number
+}
 
-// interface TokenListMapping {
-//   [key: string]: TokenList;
-// }
+interface TokenListMapping {
+  [key: string]: TokenList;
+}
 
-// // Fetch token list
-// export const fetchTokenList = () => {
-//   const { data, error } = useSWR('https://api.coingecko.com/api/v3/coins/list?include_platform=true', fetcher, {
-//     refreshInterval: 3600000, // Refresh every 1 hour
-//     revalidateOnFocus: false, // Prevent revalidation when window gains focus
-//   });
+export const fetchTokenPrice = (tokenId: string) => {
+  const { data, error } = useSWR(
+    `https://api.coingecko.com/api/v3/simple/price?ids=${tokenId}&vs_currencies=usd`,
+    fetcher,
+    {
+      refreshInterval: 3600000, // Refresh every 1 hour
+      revalidateOnFocus: false,
+    }
+  );
 
-//   if (error) return { tokens: {}, isLoading: false, isError: true };
-//   if (!data) return { tokens: {}, isLoading: true, isError: false };
+  return {
+    data,
+    isLoading: !error && !data,
+    isError: error,
+  };
+};
 
-//   // Filter tokens to only those that have Solana platforms
-//   const solanaTokens: TokenListMapping = {};
-//   for (const token of data) {
-//     if (token.platforms && token.platforms.solana) {
-//       const mint: string = token.platforms.solana;
-//       solanaTokens[mint] = {
-//         id: token.id,
-//         symbol: token.symbol,
-//         name: token.name,
-//       };  
-//     }
-//   }
-//   return { tokens: solanaTokens, isLoading: false, isError: false };
-// };
+// Fetch token list
+export const fetchTokenList = () => {
+  const { data, error } = useSWR('https://api.coingecko.com/api/v3/coins/list?include_platform=true', fetcher, {
+    refreshInterval: 3600000, // Refresh every 1 hour
+    revalidateOnFocus: false, // Prevent revalidation when window gains focus
+    dedupingInterval: 300000, // SWR deduping interval, 5 minutes
+  });
 
-// export const fetchTokenDataById = (tokenId: string) => {
-//   const { data, error } = useSWR(`https://api.coingecko.com/api/v3/coins/${tokenId}`, fetcher, {
-//     refreshInterval: 3600000, // Refresh every 1 hour
-//     revalidateOnFocus: false, // Prevent revalidation when window gains focus
-//   })
+  if (error) return { tokens: {}, isLoading: false, isError: true };
+  if (!data) return { tokens: {}, isLoading: true, isError: false };
 
-//   if (error) return { data: [], isLoading: false, isError: true };
-//   if (!data) return { data: [], isLoading: true, isError: false };
-
-//   return { data, isLoading: true, isError: false }
-
-// }
-
-export const fetchTokenPrice = async (token: string) => {
-    const response = await axios.get(
-      `https://api.coingecko.com/api/v3/simple/price?ids=${token}&vs_currencies=usd`
-    )
-    .catch((err) => {
-      console.error(`Failed to fetch ${token} price:`, err);
-    })
-    return response
+  // Filter tokens to only those that have Solana platforms
+  const solanaTokens: TokenListMapping = {};
+  for (const token of data) {
+    if (token.platforms && token.platforms.solana) {
+      const mint: string = token.platforms.solana;
+      solanaTokens[mint] = {
+        id: token.id,
+        symbol: token.symbol,
+        name: token.name,
+      };  
+    }
   }
+  console.log(solanaTokens);
+  return { tokens: solanaTokens, isLoading: false, isError: false };
+};
+// Custom hook to fetch token data by ID
+export const fetchTokenDataByIds = (tokenIds: string[], currency: string)=> {
+  let queryString = `https://api.coingecko.com/api/v3/coins/markets?vs_currency=${currency}&ids=`
+  // Concatenating ids to query string
+  queryString.concat(tokenIds.join(','));
+  const { data, error } = useSWR<TokenList[], Error>((queryString),
+    fetcher, {
+    refreshInterval: 3600000, // Refresh every 1 hour
+    revalidateOnFocus: false, // Prevent revalidation when window gains focus
+    dedupingInterval: 300000, // SWR deduping interval, 5 minutes
+    onErrorRetry: (error, key, config, revalidate, { retryCount }) => {
+      // Retry only a few times
+      if (retryCount >= 3) return;
+      // Retry after 1 second if error
+      setTimeout(() => revalidate({ retryCount }), 1000);
+    },
+  });
+
+  return {
+    data,
+    isLoading: !error && !data,
+    isError: error
+  };
+};
 
 export const fetchTokenByAccount = async (publicKey: PublicKey, connection: Connection) => {
     const filters:GetProgramAccountsFilter[] = [
@@ -79,7 +101,6 @@ export const fetchTokenByAccount = async (publicKey: PublicKey, connection: Conn
         TOKEN_PROGRAM_ID,
         {filters: filters}
     );
-    console.log(`Found ${accounts.length} token account(s) for wallet ${publicKey}.`);
     const tokenAccounts = accounts.map((account, i) => {
         //Parse the account data
         const parsedAccountInfo: ParsedAccountData = account.account.data as ParsedAccountData;
