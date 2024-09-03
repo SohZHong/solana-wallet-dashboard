@@ -7,7 +7,7 @@ import ContainerDiv from "./components/ContainerDiv"
 import { ParsedAccountData } from "@solana/web3.js";
 import { useState, useEffect, useMemo } from "react";
 import { Table, TableBody, TableCell, TableColumn, TableHeader, TableRow } from "@nextui-org/table";
-import { fetchTokenByAccount, fetchTokenDataByIds, fetchTokenList } from "@/api/token";
+import { fetchAssociatedAccountByMintAddress, fetchTokenByAccount, fetchTokenDataByIds, fetchTokenList } from "@/api/token";
 import Image from "next/image";
 import getWalletBalance from "@/api/wallet";
 
@@ -24,11 +24,9 @@ export const Home = () => {
   const { connection } = useConnection();
   const { publicKey } = useWallet();
   const { tokens, isLoading: tokensLoading, isError: tokensError } = fetchTokenList();
-  const { data: solanaPriceData, isLoading: solanaPriceLoading } = fetchTokenDataByIds(['solana'], 'usd');
   const [balance, setBalance] = useState<number>(0);
   const [currencyValue, setCurrencyValue] = useState<number>(0);
   const [tokenBalances, setTokenBalances] = useState<TokenBalance[]>([]);
-
 
   // Memoized tokens
   const memoizedTokens = useMemo(() => tokens, [tokensLoading, tokensError]);
@@ -56,7 +54,6 @@ export const Home = () => {
     // Processing token accounts
     const processTokenAccounts = async () => {
       const tokenAccounts = await fetchTokenByAccount(publicKey, connection);
-      
       // Temporary total value variable to calculate total value
       let tempTotalValue = 0;
 

@@ -1,6 +1,6 @@
-import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
+import { ASSOCIATED_TOKEN_PROGRAM_ID, TOKEN_PROGRAM_ID, getAssociatedTokenAddressSync } from "@solana/spl-token";
 import { Connection, GetProgramAccountsFilter, ParsedAccountData, PublicKey } from "@solana/web3.js";
-import axios, { AxiosResponse } from "axios";
+import axios from "axios";
 import useSWR from "swr";
 
 // SWR fetcher function
@@ -100,7 +100,7 @@ export const fetchTokenByAccount = async (publicKey: PublicKey, connection: Conn
         TOKEN_PROGRAM_ID,
         {filters: filters}
     );
-    const tokenAccounts = accounts.map((account, i) => {
+    const tokenAccounts = accounts.map((account) => {
         //Parse the account data
         const parsedAccountInfo: ParsedAccountData = account.account.data as ParsedAccountData;
         const mintAddress:string = parsedAccountInfo.parsed.info.mint;
@@ -113,4 +113,12 @@ export const fetchTokenByAccount = async (publicKey: PublicKey, connection: Conn
         }
     });
     return tokenAccounts
+}
+
+export const fetchAssociatedAccountByMintAddress = async (publicKey: PublicKey, connection: Connection): Promise<PublicKey[]> => {
+  const tokenAccounts = await fetchTokenByAccount(publicKey, connection);
+  const associatedAccounts = tokenAccounts.map(account => {
+    return getAssociatedTokenAddressSync(new PublicKey(account.mintAddress), publicKey);
+  })
+  return associatedAccounts;
 }
