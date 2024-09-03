@@ -54,12 +54,12 @@ export default function SettingsDropdown() {
                             <SelectItem key="en" value="en">
                                 English
                             </SelectItem>
-                            <SelectItem key="es" value="es">
+                            {/* <SelectItem key="es" value="es">
                                 Spanish
                             </SelectItem>
                             <SelectItem key="fr" value="fr">
                                 French
-                            </SelectItem>
+                            </SelectItem> */}
                         </Select>
                     </DropdownItem>
                 </DropdownSection>
