@@ -2,7 +2,7 @@
 
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import React, { useEffect, useMemo, useState } from "react";
-import { LAMPORTS_PER_SOL, ParsedTransactionWithMeta, PublicKey } from "@solana/web3.js";
+import { LAMPORTS_PER_SOL, ParsedInstruction, ParsedTransactionWithMeta, PublicKey } from "@solana/web3.js";
 import {
     Table,
     TableHeader,
@@ -95,19 +95,63 @@ export default function History() {
         return accountIndex;
     };
 
+    // const getTransactionChange = (tx: ParsedTransactionWithMeta | null, accountPubKeys: PublicKey[]) => {
+    //     let totalChange = 0;
+    //     let changeType = '';
+    
+    //     accountPubKeys.forEach((accountPubKey) => {
+    //         if (!tx?.meta || (!tx.meta.preBalances && !tx.meta.preTokenBalances) || (!tx.meta.postBalances && !tx.meta.postTokenBalances)) {
+    //             return;
+    //         }
+    
+    //         const accountIndex = findAccountIndex(tx, accountPubKey);
+    
+    //         // Check if it's a SOL transaction
+    //         if (accountIndex !== -1 && tx.meta.preBalances && tx.meta.postBalances) {
+    //             const preBalanceLamports = tx.meta.preBalances[accountIndex] || 0;
+    //             const postBalanceLamports = tx.meta.postBalances[accountIndex] || 0;
+    //             console.log("Transaction", tx);
+    //             const change = (postBalanceLamports - preBalanceLamports) / LAMPORTS_PER_SOL;
+    //             totalChange += change;
+    
+    //             changeType = change > 0 ? 'Received' : 'Transferred';
+    //         }
+    
+    //         // Check if it's a token transaction
+    //         const tokenBalanceChange = tx.meta.preTokenBalances?.find((b) => b.accountIndex === accountIndex);
+    //         // console.log("Balance Change", tokenBalanceChange);
+    //         const tokenPostBalance = tx.meta.postTokenBalances?.find((b) => b.accountIndex === accountIndex);
+    //         console.log("Post Change", tokenPostBalance);
+
+    //         if (tokenBalanceChange && tokenPostBalance) {
+    //             // Adjust the balance change according to the token's decimals
+    //             const preBalanceTokens = parseFloat(tokenBalanceChange.uiTokenAmount.uiAmountString || "0");
+    //             const postBalanceTokens = parseFloat(tokenPostBalance.uiTokenAmount.uiAmountString || "0");
+    
+    //             // Get the decimal places for the token
+    //             const decimals = tokenBalanceChange.uiTokenAmount.decimals;
+    //             const change = (postBalanceTokens - preBalanceTokens) / Math.pow(10, decimals);
+    //             totalChange += change;
+    
+    //             changeType = change > 0 ? 'Received' : 'Transferred';
+    //         }
+    //     });
+    
+    //     return { totalChange, changeType };
+    // }
+
     const getTransactionChange = (tx: ParsedTransactionWithMeta | null, accountPubKeys: PublicKey[]) => {
         let totalChange = 0;
         let changeType = '';
-    
+    // Change to search by mint address
         accountPubKeys.forEach((accountPubKey) => {
-            if (!tx?.meta || (!tx.meta.preBalances && !tx.meta.preTokenBalances) || (!tx.meta.postBalances && !tx.meta.postTokenBalances)) {
-                return;
-            }
+            if (!tx?.meta) return;
     
             const accountIndex = findAccountIndex(tx, accountPubKey);
+            if (accountIndex === -1) return;
     
-            // Check if it's a SOL transaction
-            if (accountIndex !== -1 && tx.meta.preBalances && tx.meta.postBalances) {
+            // SOL balance case
+            if (tx.meta.preBalances && tx.meta.postBalances) {
                 const preBalanceLamports = tx.meta.preBalances[accountIndex] || 0;
                 const postBalanceLamports = tx.meta.postBalances[accountIndex] || 0;
     
@@ -117,17 +161,14 @@ export default function History() {
                 changeType = change > 0 ? 'Received' : 'Transferred';
             }
     
-            // Check if it's a token transaction
+            // Additional handling for token transactions (legacy)
             const tokenBalanceChange = tx.meta.preTokenBalances?.find((b) => b.accountIndex === accountIndex);
             const tokenPostBalance = tx.meta.postTokenBalances?.find((b) => b.accountIndex === accountIndex);
-            if (tokenBalanceChange && tokenPostBalance) {
-                // Adjust the balance change according to the token's decimals
-                const preBalanceTokens = parseFloat(tokenBalanceChange.uiTokenAmount.uiAmountString || "0");
-                const postBalanceTokens = parseFloat(tokenPostBalance.uiTokenAmount.uiAmountString || "0");
-    
-                // Get the decimal places for the token
-                const decimals = tokenBalanceChange.uiTokenAmount.decimals;
-                const change = (postBalanceTokens - preBalanceTokens) / Math.pow(10, decimals);
+            // preTokenBalances or postTokenBalances is undefined at account index if amount is 0
+            if (tokenBalanceChange || tokenPostBalance) {
+                const preBalanceTokens = tokenBalanceChange?.uiTokenAmount.uiAmount || 0;
+                const postBalanceTokens = tokenPostBalance?.uiTokenAmount.uiAmount || 0;
+                const change = postBalanceTokens - preBalanceTokens;
                 totalChange += change;
     
                 changeType = change > 0 ? 'Received' : 'Transferred';
@@ -135,7 +176,7 @@ export default function History() {
         });
     
         return { totalChange, changeType };
-    }
+    };
 
     const getPostBalance = (tx: ParsedTransactionWithMeta | null, accountPubKeys: PublicKey[]) => {
         let totalPostBalance = 0;
@@ -161,7 +202,7 @@ export default function History() {
             }
         });
     
-        return totalPostBalance.toFixed(2);
+        return totalPostBalance.toFixed(6);
     };
     // Memoize the token list to avoid re-creating it on every render
     const tokenList = useMemo(() => {
@@ -194,6 +235,7 @@ export default function History() {
                     <TableColumn>DATE</TableColumn>
                     <TableColumn maxWidth={50}>TXID</TableColumn>
                     <TableColumn maxWidth={20}>STATUS</TableColumn>
+                    <TableColumn>TYPE</TableColumn>
                     <TableColumn>CHANGE</TableColumn>
                     <TableColumn>POST BALANCE</TableColumn>
                 </TableHeader>
@@ -215,6 +257,9 @@ export default function History() {
                                         {tx?.meta?.err ? 'Failed' : 'Success'}
                                     </TableCell>
                                     <TableCell>
+                                        {transactionChange.changeType}
+                                    </TableCell>
+                                    <TableCell>
                                         <Image 
                                             src={tokenList[index].image.large}
                                             alt={tokenList[index].symbol}
@@ -225,8 +270,8 @@ export default function History() {
                                         />
                                         <span>
                                         {
-                                            transactionChange.totalChange === 0 ? '-' : 
-                                            `${transactionChange.changeType} ${transactionChange.totalChange.toFixed(5)}`
+                                            transactionChange.totalChange < 0 ? '-' : 
+                                            `${transactionChange.totalChange.toFixed(6)}`
                                         }
                                         </span>
                                     </TableCell>
