@@ -9,17 +9,20 @@ import {
 import SettingIcon from './icons/SettingIcon';
 import { Select, SelectItem } from "@nextui-org/select";
 import { useTheme } from "next-themes";
-import { ChangeEvent, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 
 export default function SettingsDropdown() {
     const { theme, setTheme } = useTheme();
     const [selectedTheme, setSelectedTheme] = useState<string>('system');
-    const [selectedLanguage, setSelectedLanguage] = useState('en');
+    const [selectedCurrency, setSelectedCurrency] = useState<string>('');
     const [mounted, setMounted] = useState(false);
   
     useEffect(() => {
       setMounted(true);
-      if (theme) setSelectedTheme(theme)
+      if (theme) setSelectedTheme(theme);
+    //   Read currency from localStorage
+      const currency = localStorage.getItem('currency');
+      setSelectedCurrency(currency ? currency : 'usd');
     }, []);
   
     if (!mounted) return null;
@@ -29,9 +32,9 @@ export default function SettingsDropdown() {
         setSelectedTheme(value);
     };
 
-    const handleLanguageChange = (value: string) => {
-        setSelectedLanguage(value);
-        // Perform any additional actions needed for language change
+    const handleCurrencyChange = (value: string) => {
+        setSelectedCurrency(value);
+        localStorage.setItem('currency', value);
     };
 
     return (
@@ -47,19 +50,19 @@ export default function SettingsDropdown() {
                         <Select
                             variant="bordered"
                             placeholder="Select Language"
-                            selectedKeys={[selectedLanguage]} // Use array for selected keys
+                            selectedKeys={[selectedCurrency ? selectedCurrency : "usd"]} // Use array for selected keys
                             className="max-w-xs"
-                            onChange={(e => handleLanguageChange(e.target.value))}
+                            onChange={(e => handleCurrencyChange(e.target.value))}
                         >
-                            <SelectItem key="en" value="en">
-                                English
+                            <SelectItem key="usd" value="usd">
+                                USD
                             </SelectItem>
-                            {/* <SelectItem key="es" value="es">
-                                Spanish
+                            <SelectItem key="myr" value="myr">
+                                MYR
                             </SelectItem>
-                            <SelectItem key="fr" value="fr">
-                                French
-                            </SelectItem> */}
+                            <SelectItem key="sgd" value="sgd">
+                                SGD
+                            </SelectItem>
                         </Select>
                     </DropdownItem>
                 </DropdownSection>
