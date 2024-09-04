@@ -40,13 +40,13 @@ export const fetchTokenPrice = (contractAddress: string, currency: string) => {
   };
 };
 
-export const useTokenDataWithAddress = (contractAddresses: string[]) => {
+export const useTokenDataWithAddress = (contractAddresses: string[] | PublicKey[]) => {
   // Only fetch if there are contract addresses available
   const shouldFetch = contractAddresses && contractAddresses.length > 0;
-  
+
   const { data, error } = useSWR(
     shouldFetch
-      ? contractAddresses.map(address => `https://api.coingecko.com/api/v3/coins/solana/contract/${address}`)
+      ? contractAddresses.map(address => `https://api.coingecko.com/api/v3/coins/solana/contract/${address.toString()}`)
       : null,  // Return null to prevent SWR from fetching
     multiFetcher,
     {
@@ -64,33 +64,27 @@ export const useTokenDataWithAddress = (contractAddresses: string[]) => {
   };
 };
 
-// 
+export const useTokenDataById = (tokenId: string) => {
+  let queryString = `https://api.coingecko.com/api/v3/coins/${tokenId}`;
+  const { data, error } = useSWR((queryString),
+    fetcher, {
+    refreshInterval: 3600000, // Refresh every 1 hour
+    revalidateOnFocus: false, // Prevent revalidation when window gains focus
+    dedupingInterval: 300000, // SWR deduping interval, 5 minutes
+    onErrorRetry: (error, key, config, revalidate, { retryCount }) => {
+      // Retry only a few times
+      if (retryCount >= 3) return;
+      // Retry after 1 second if error
+      setTimeout(() => revalidate({ retryCount }), 1000);
+    },
+  });
 
-// Fetch token list
-// export const fetchTokenList = () => {
-//   const { data, error } = useSWR('https://api.coingecko.com/api/v3/coins/list?include_platform=true', fetcher, {
-//     refreshInterval: 3600000, // Refresh every 1 hour
-//     revalidateOnFocus: false, // Prevent revalidation when window gains focus
-//     dedupingInterval: 300000, // SWR deduping interval, 5 minutes
-//   });
-
-//   if (error) return { tokens: {}, isLoading: false, isError: true };
-//   if (!data) return { tokens: {}, isLoading: true, isError: false };
-
-//   // Filter tokens to only those that have Solana platforms
-//   const solanaTokens: TokenListMapping = {};
-//   for (const token of data) {
-//     if (token.platforms && token.platforms.solana) {
-//       const mint: string = token.platforms.solana;
-//       solanaTokens[mint] = {
-//         id: token.id,
-//         symbol: token.symbol,
-//         name: token.name,
-//       };  
-//     }
-//   }
-//   return { tokens: solanaTokens, isLoading: false, isError: false };
-// };
+  return {
+    token: data,
+    isLoading: !error && !data,
+    isError: error
+  };
+}
 
 // Custom hook to fetch token data by ID
 export const useTokenDataByIds = (tokenIds: string[], currency: string)=> {

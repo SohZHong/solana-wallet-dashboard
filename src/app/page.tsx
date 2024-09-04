@@ -30,6 +30,12 @@ export const Home = () => {
   const [currency, setCurrency] = useState<string>('usd'); // Default to 'usd'
   const [currencyValue, setCurrencyValue] = useState<number>(0);
 
+  useEffect(() => {
+    // Read currency from localStorage
+    const currency = localStorage.getItem('currency');
+    setCurrency(currency ? currency : 'usd');
+  }, []);
+
   // Fetch token accounts and Solana balance on load
   useEffect(() => {
     const fetchBalanceAndTokens = async () => {
@@ -77,7 +83,6 @@ export const Home = () => {
     });
 
   // Add Solana balance
-  console.log(solanaData)
   if (solanaData && solanaData[0].current_price) {
     const solData = solanaData[0];
     const solanaPrice = solData.current_price;

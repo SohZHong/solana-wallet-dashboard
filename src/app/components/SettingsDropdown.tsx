@@ -35,6 +35,7 @@ export default function SettingsDropdown() {
     const handleCurrencyChange = (value: string) => {
         setSelectedCurrency(value);
         localStorage.setItem('currency', value);
+        window.location.reload();
     };
 
     return (

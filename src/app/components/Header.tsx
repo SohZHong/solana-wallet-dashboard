@@ -29,6 +29,7 @@ export default function Header(){
                 <Image 
                     src={"/logo.png"}
                     alt="SolSets Logo"
+                    className='w-44 h-auto'
                     height={175}
                     width={175}
                 />
