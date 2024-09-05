@@ -16,6 +16,19 @@ import HistoryIcon from "../components/icons/HistoryIcon";
 import { fetchAssociatedAccountByMintAddress, fetchTokenByAccount, useTokenDataById, useTokenDataWithAddress } from "@/api/token";
 import Image from "next/image";
 
+export interface Token {
+  id: string;
+  symbol: string;
+  name: string;
+  token: any;
+  image?: string,
+  current_price?: number
+}
+
+interface TokenMapping {
+  [key: string]: Token;
+}
+
 export default function History() {
     const { publicKey } = useWallet();
     const { connection } = useConnection();
@@ -37,6 +50,15 @@ export default function History() {
 
     const { token: tokens, isLoading: isTokenLoading, isError: isTokenError } = useTokenDataWithAddress(contractAddresses);
     const { token, isLoading: isSolLoading, isError: isSolError } = useTokenDataById('solana');
+
+    const tokenMap = useMemo(() => {
+        let map = new Map<string, any>();
+        tokens.forEach((token) => {
+            map.set(token.platforms.solana, token);
+        });
+        map.set('solana', token);
+        return map;
+    }, [tokens, token, contractAddresses]);
 
     useEffect(() => {
         const fetchContractAddresses = async () => {
@@ -64,8 +86,7 @@ export default function History() {
         const fetchTransactionData = async () => {
             try {
                 const fetchedSignatures = await connection.getSignaturesForAddress(publicKey, {
-                    before: lastSignature || undefined,
-                    limit: rowsPerPage
+                    before: lastSignature || undefined
                 });
                 setLastSignature(fetchedSignatures[fetchedSignatures.length - 1].signature);
                 const fetchedTransactions = await Promise.all(
@@ -95,119 +116,89 @@ export default function History() {
         return accountIndex;
     };
 
-    // const getTransactionChange = (tx: ParsedTransactionWithMeta | null, accountPubKeys: PublicKey[]) => {
-    //     let totalChange = 0;
-    //     let changeType = '';
-    
-    //     accountPubKeys.forEach((accountPubKey) => {
-    //         if (!tx?.meta || (!tx.meta.preBalances && !tx.meta.preTokenBalances) || (!tx.meta.postBalances && !tx.meta.postTokenBalances)) {
-    //             return;
-    //         }
-    
-    //         const accountIndex = findAccountIndex(tx, accountPubKey);
-    
-    //         // Check if it's a SOL transaction
-    //         if (accountIndex !== -1 && tx.meta.preBalances && tx.meta.postBalances) {
-    //             const preBalanceLamports = tx.meta.preBalances[accountIndex] || 0;
-    //             const postBalanceLamports = tx.meta.postBalances[accountIndex] || 0;
-    //             console.log("Transaction", tx);
-    //             const change = (postBalanceLamports - preBalanceLamports) / LAMPORTS_PER_SOL;
-    //             totalChange += change;
-    
-    //             changeType = change > 0 ? 'Received' : 'Transferred';
-    //         }
-    
-    //         // Check if it's a token transaction
-    //         const tokenBalanceChange = tx.meta.preTokenBalances?.find((b) => b.accountIndex === accountIndex);
-    //         // console.log("Balance Change", tokenBalanceChange);
-    //         const tokenPostBalance = tx.meta.postTokenBalances?.find((b) => b.accountIndex === accountIndex);
-    //         console.log("Post Change", tokenPostBalance);
+    const getTransactionDetails = (tx: ParsedTransactionWithMeta | null, accountPubKeys: PublicKey[]) => {
+        let change = 0;
+        let type = '';
+        let postBalance = '0';
+        let mint = '';
 
-    //         if (tokenBalanceChange && tokenPostBalance) {
-    //             // Adjust the balance change according to the token's decimals
-    //             const preBalanceTokens = parseFloat(tokenBalanceChange.uiTokenAmount.uiAmountString || "0");
-    //             const postBalanceTokens = parseFloat(tokenPostBalance.uiTokenAmount.uiAmountString || "0");
-    
-    //             // Get the decimal places for the token
-    //             const decimals = tokenBalanceChange.uiTokenAmount.decimals;
-    //             const change = (postBalanceTokens - preBalanceTokens) / Math.pow(10, decimals);
-    //             totalChange += change;
-    
-    //             changeType = change > 0 ? 'Received' : 'Transferred';
-    //         }
-    //     });
-    
-    //     return { totalChange, changeType };
-    // }
-
-    const getTransactionChange = (tx: ParsedTransactionWithMeta | null, accountPubKeys: PublicKey[]) => {
-        let totalChange = 0;
-        let changeType = '';
-    // Change to search by mint address
         accountPubKeys.forEach((accountPubKey) => {
             if (!tx?.meta) return;
     
             const accountIndex = findAccountIndex(tx, accountPubKey);
             if (accountIndex === -1) return;
-    
-            // SOL balance case
-            if (tx.meta.preBalances && tx.meta.postBalances) {
-                const preBalanceLamports = tx.meta.preBalances[accountIndex] || 0;
-                const postBalanceLamports = tx.meta.postBalances[accountIndex] || 0;
-    
-                const change = (postBalanceLamports - preBalanceLamports) / LAMPORTS_PER_SOL;
-                totalChange += change;
-    
-                changeType = change > 0 ? 'Received' : 'Transferred';
-            }
-    
-            // Additional handling for token transactions (legacy)
-            const tokenBalanceChange = tx.meta.preTokenBalances?.find((b) => b.accountIndex === accountIndex);
-            const tokenPostBalance = tx.meta.postTokenBalances?.find((b) => b.accountIndex === accountIndex);
-            // preTokenBalances or postTokenBalances is undefined at account index if amount is 0
-            if (tokenBalanceChange || tokenPostBalance) {
-                const preBalanceTokens = tokenBalanceChange?.uiTokenAmount.uiAmount || 0;
-                const postBalanceTokens = tokenPostBalance?.uiTokenAmount.uiAmount || 0;
-                const change = postBalanceTokens - preBalanceTokens;
-                totalChange += change;
-    
-                changeType = change > 0 ? 'Received' : 'Transferred';
+            const { totalChange, changeType } = getTransactionChange(tx, accountIndex);
+            change = totalChange;
+            type = changeType;
+            postBalance = getPostBalance(tx, accountIndex);
+            const tokenInstructions = tx.transaction.message.instructions as ParsedInstruction[];
+            for (const instruction of tokenInstructions) {
+                if (instruction?.parsed?.info?.mint) {
+                    mint = instruction.parsed.info.mint;
+                    break; // Exit once mint is found
+                }
             }
         });
     
-        return { totalChange, changeType };
+        return { change, type, postBalance, mint };
     };
 
-    const getPostBalance = (tx: ParsedTransactionWithMeta | null, accountPubKeys: PublicKey[]) => {
+    const getTransactionChange = (tx: ParsedTransactionWithMeta, accountIndex: number) => {
+
+        let totalChange = 0;
+        let changeType = 'Unknown';
+
+        if (!tx?.meta) return { totalChange, changeType };
+        // SOL balance case
+        if (tx.meta.preBalances && tx.meta.postBalances) {
+            const preBalanceLamports = tx.meta.preBalances[accountIndex] || 0;
+            const postBalanceLamports = tx.meta.postBalances[accountIndex] || 0;
+
+            const change = (postBalanceLamports - preBalanceLamports) / LAMPORTS_PER_SOL;
+            totalChange += change;
+
+            changeType = change > 0 ? 'Received' : 'Transferred';
+        }
+
+        // Additional handling for token transactions (legacy)
+        const tokenBalanceChange = tx.meta.preTokenBalances?.find((b) => b.accountIndex === accountIndex);
+        const tokenPostBalance = tx.meta.postTokenBalances?.find((b) => b.accountIndex === accountIndex);
+        // preTokenBalances or postTokenBalances is undefined at account index if amount is 0
+        if (tokenBalanceChange || tokenPostBalance) {
+            const preBalanceTokens = tokenBalanceChange?.uiTokenAmount.uiAmount || 0;
+            const postBalanceTokens = tokenPostBalance?.uiTokenAmount.uiAmount || 0;
+            const change = postBalanceTokens - preBalanceTokens;
+            totalChange += change;
+
+            changeType = change > 0 ? 'Received' : 'Transferred';
+        }
+        return { totalChange, changeType };
+    }
+
+    const getPostBalance = (tx: ParsedTransactionWithMeta, accountIndex: number) => {
         let totalPostBalance = 0;
     
-        accountPubKeys.forEach((accountPubKey) => {
-            const accountIndex = findAccountIndex(tx, accountPubKey);
-            if (accountIndex === -1) {
-                return;
-            }
-    
-            // SOL balance case
-            if (tx?.meta?.postBalances) {
-                const postBalanceLamports = tx.meta.postBalances[accountIndex] || 0;
-                const postBalance = (postBalanceLamports / LAMPORTS_PER_SOL);
-                totalPostBalance += postBalance;
-            }
-    
-            // Token balance case
-            const tokenPostBalance = tx?.meta?.postTokenBalances?.find((b) => b.accountIndex === accountIndex);
-            if (tokenPostBalance) {
-                const postBalanceTokens = parseFloat(tokenPostBalance.uiTokenAmount.uiAmountString || "0");
-                totalPostBalance += postBalanceTokens;
-            }
-        });
+        // SOL balance case
+        if (tx?.meta?.postBalances) {
+            const postBalanceLamports = tx.meta.postBalances[accountIndex] || 0;
+            const postBalance = (postBalanceLamports / LAMPORTS_PER_SOL);
+            totalPostBalance += postBalance;
+        }
+
+        // Token balance case
+        const tokenPostBalance = tx?.meta?.postTokenBalances?.find((b) => b.accountIndex === accountIndex);
+        if (tokenPostBalance) {
+            const postBalanceTokens = parseFloat(tokenPostBalance.uiTokenAmount.uiAmountString || "0");
+            totalPostBalance += postBalanceTokens;
+        }
     
         return totalPostBalance.toFixed(6);
     };
+
     // Memoize the token list to avoid re-creating it on every render
-    const tokenList = useMemo(() => {
-        return [...tokens, token];
-    }, [tokens, token]);
+    // const tokenList = useMemo(() => {
+    //     return [...tokens, token];
+    // }, [tokens, token]);
 
     return (
         <div className="w-screen p-5">
@@ -242,9 +233,8 @@ export default function History() {
                 <TableBody emptyContent={" No transactions found"}>
                     {
                         items.map((tx, index) => {
-                            const transactionChange = getTransactionChange(tx, tokenAddress);
-                            const postBalance = getPostBalance(tx, tokenAddress);
-
+                            const txDetails = getTransactionDetails(tx, tokenAddress);
+                            const tokenDetails = tokenMap.get((txDetails.mint ? txDetails.mint : 'solana'));
                             return (
                                 <TableRow key={index}>
                                     <TableCell>
@@ -257,35 +247,41 @@ export default function History() {
                                         {tx?.meta?.err ? 'Failed' : 'Success'}
                                     </TableCell>
                                     <TableCell>
-                                        {transactionChange.changeType}
+                                        {txDetails.type}
                                     </TableCell>
                                     <TableCell>
-                                        <Image 
-                                            src={tokenList[index].image.large}
-                                            alt={tokenList[index].symbol}
-                                            aria-label={tokenList[index].symbol}
+                                        <span className="flex flex-row items-center gap-2">
+                                        {
+                                            tokenDetails && 
+                                            <Image 
+                                            src={tokenDetails.image.large}
+                                            alt={tokenDetails.symbol}
+                                            aria-label={tokenDetails.symbol}
                                             className="w-4 h-auto"
                                             width={50}
                                             height={50}
                                         />
-                                        <span>
+                                        }
                                         {
-                                            transactionChange.totalChange < 0 ? '-' : 
-                                            `${transactionChange.totalChange.toFixed(6)}`
+                                            txDetails.change < 0 ? '-' : 
+                                            `${txDetails.change.toFixed(6)}`
                                         }
                                         </span>
                                     </TableCell>
                                     <TableCell>
-                                        <Image 
-                                            src={tokenList[index].image.large}
-                                            alt={tokenList[index].symbol}
-                                            aria-label={tokenList[index].symbol}
+                                        <span className="flex flex-row items-center gap-2">
+                                        {
+                                            tokenDetails && 
+                                            <Image 
+                                            src={tokenDetails.image.large}
+                                            alt={tokenDetails.symbol}
+                                            aria-label={tokenDetails.symbol}
                                             className="w-4 h-auto"
                                             width={50}
                                             height={50}
                                         />
-                                        <span className="uppercase">
-                                        {postBalance}
+                                        }
+                                        {txDetails.postBalance}
                                         </span>
                                     </TableCell>
                                 </TableRow>

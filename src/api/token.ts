@@ -10,19 +10,6 @@ const multiFetcher = (urls: string[]) => Promise.all(
   urls.map(url => axios.get(url).then(res => res.data)
 ))
 
-// export interface TokenList {
-//   id: string;
-//   symbol: string;
-//   name: string;
-//   token: any;
-//   image?: string,
-//   current_price?: number
-// }
-
-// interface TokenListMapping {
-//   [key: string]: TokenList;
-// }
-
 export const fetchTokenPrice = (contractAddress: string, currency: string) => {
   const { data, error } = useSWR(
     `https://api.coingecko.com/api/v3/simple/token_price/id?contract_addresses=${contractAddress}&vs_currencies=${currency}'`,
