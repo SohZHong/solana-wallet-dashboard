@@ -10,11 +10,13 @@ import SettingIcon from './icons/SettingIcon';
 import { Select, SelectItem } from "@nextui-org/select";
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
+import { WalletAdapterNetwork } from "@solana/wallet-adapter-base";
 
 export default function SettingsDropdown() {
     const { theme, setTheme } = useTheme();
     const [selectedTheme, setSelectedTheme] = useState<string>('system');
     const [selectedCurrency, setSelectedCurrency] = useState<string>('');
+    const [selectedNetwork, setSelectedNetwork] = useState<WalletAdapterNetwork>(WalletAdapterNetwork.Devnet);
     const [mounted, setMounted] = useState(false);
   
     useEffect(() => {
@@ -22,7 +24,9 @@ export default function SettingsDropdown() {
       if (theme) setSelectedTheme(theme);
     //   Read currency from localStorage
       const currency = localStorage.getItem('currency');
+      const network = localStorage.getItem('selectedNetwork');
       setSelectedCurrency(currency ? currency : 'usd');
+      setSelectedNetwork(network ? network as WalletAdapterNetwork : WalletAdapterNetwork.Devnet);
     }, []);
   
     if (!mounted) return null;
@@ -36,6 +40,12 @@ export default function SettingsDropdown() {
         setSelectedCurrency(value);
         localStorage.setItem('currency', value);
         window.location.reload();
+    };
+
+    const handleNetworkChange = (network: WalletAdapterNetwork) => {
+        setSelectedNetwork(network);
+        localStorage.setItem('selectedNetwork', network);
+        window.location.reload(); // refresh to apply new endpoint
     };
 
     return (
@@ -82,6 +92,20 @@ export default function SettingsDropdown() {
                             <SelectItem key="dark" value="dark">
                                 Dark
                             </SelectItem>
+                        </Select>
+                    </DropdownItem>
+                </DropdownSection>
+                <DropdownSection title="Network">
+                    <DropdownItem key="network">
+                        <Select
+                            variant="bordered"
+                            placeholder="Network"
+                            selectedKeys={[selectedNetwork]}
+                            className="max-w-xs"
+                            onChange={(e => handleNetworkChange(e.target.value as WalletAdapterNetwork))}
+                        >
+                            <SelectItem key="devnet" value={WalletAdapterNetwork.Devnet}>Devnet</SelectItem>
+                            <SelectItem key="mainnet-beta" value={WalletAdapterNetwork.Mainnet}>Mainnet</SelectItem>
                         </Select>
                     </DropdownItem>
                 </DropdownSection>

@@ -29,11 +29,14 @@ export const Home = () => {
   const [solanaBalance, setSolanaBalance] = useState<number>(0);
   const [currency, setCurrency] = useState<string>('usd'); // Default to 'usd'
   const [currencyValue, setCurrencyValue] = useState<number>(0);
+  const [selectedNetwork, setSelectedNetwork] = useState<string>('devnet');
 
   useEffect(() => {
-    // Read currency from localStorage
+    // Read currency, network from localStorage
     const currency = localStorage.getItem('currency');
+    const network = localStorage.getItem('selectedNetwork');
     setCurrency(currency ? currency : 'usd');
+    setSelectedNetwork(network ? network : 'devnet');
   }, []);
 
   // Fetch token accounts and Solana balance on load
@@ -154,7 +157,10 @@ export const Home = () => {
           })}
         </TableBody>
       </Table>
-      <AppButton onClick={handleAirDrop}>AirDrop</AppButton>
+      {
+        selectedNetwork === 'devnet' &&
+        <AppButton onClick={handleAirDrop}>AirDrop Dev Tokens</AppButton>
+      }
     </div>
   );
 }

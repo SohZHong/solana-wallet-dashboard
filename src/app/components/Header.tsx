@@ -35,7 +35,7 @@ export default function Header(){
                 />
             </div>
             <div className="flex items-center flex-row lg:gap-4 gap-1">
-                <WalletMultiButtonDynamic className='text-base p-1 bg-transparent'/>
+                <span className='lg:block hidden'><WalletMultiButtonDynamic /></span>
                 <SettingsDropdown />
             </div>
         </header>
