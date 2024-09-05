@@ -25,10 +25,6 @@ export interface Token {
   current_price?: number
 }
 
-interface TokenMapping {
-  [key: string]: Token;
-}
-
 export default function History() {
     const { publicKey } = useWallet();
     const { connection } = useConnection();
@@ -194,11 +190,6 @@ export default function History() {
     
         return totalPostBalance.toFixed(6);
     };
-
-    // Memoize the token list to avoid re-creating it on every render
-    // const tokenList = useMemo(() => {
-    //     return [...tokens, token];
-    // }, [tokens, token]);
 
     return (
         <div className="w-screen p-5">

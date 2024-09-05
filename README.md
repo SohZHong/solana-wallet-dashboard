@@ -1,4 +1,5 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# Solsets
+**Wallet Analytics Dashboard** that displays transaction changes, types, and balances for SOL and tokens on Solana. It includes functions to fetch the change in balance, identify the transaction type (received or transferred), and extract the mint address of the token.
 
 ## Getting Started
 
