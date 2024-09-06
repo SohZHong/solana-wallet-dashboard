@@ -56,11 +56,11 @@ export default function SettingsDropdown() {
                 </button>
             </DropdownTrigger>
             <DropdownMenu aria-label="Settings">
-                <DropdownSection title="Display Language">
-                    <DropdownItem key="language">
+                <DropdownSection title="Currency">
+                    <DropdownItem key="currency">
                         <Select
                             variant="bordered"
-                            placeholder="Select Language"
+                            placeholder="Select Currency"
                             selectedKeys={[selectedCurrency ? selectedCurrency : "usd"]} // Use array for selected keys
                             className="max-w-xs"
                             onChange={(e => handleCurrencyChange(e.target.value))}
