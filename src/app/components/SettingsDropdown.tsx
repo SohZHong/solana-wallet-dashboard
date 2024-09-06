@@ -77,7 +77,7 @@ export default function SettingsDropdown() {
                         </Select>
                     </DropdownItem>
                 </DropdownSection>
-                <DropdownSection title="Language">
+                <DropdownSection title="Theme">
                     <DropdownItem key="theme">
                         <Select
                             variant="bordered"
