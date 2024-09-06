@@ -1,7 +1,5 @@
 "use client";
 import dynamic from 'next/dynamic';
-import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
-import ThemeSlider from "./ThemeSlider";
 import Image from "next/image";
 import DashboardIcon from "./icons/DashboardIcon";
 import HistoryIcon from "./icons/HistoryIcon";

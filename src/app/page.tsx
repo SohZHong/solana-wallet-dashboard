@@ -4,10 +4,9 @@ import getAirdropOnClick from "../api/airdrop";
 import AppButton from "./components/AppButton";
 import DashboardIcon from "./components/icons/DashboardIcon";
 import ContainerDiv from "./components/ContainerDiv"
-import { ParsedAccountData } from "@solana/web3.js";
 import { useState, useEffect, useMemo } from "react";
 import { Table, TableBody, TableCell, TableColumn, TableHeader, TableRow } from "@nextui-org/table";
-import { fetchAssociatedAccountByMintAddress, fetcher, fetchTokenByAccount, useTokenDataByIds, useTokenDataWithAddress, } from "@/api/token";
+import { fetchTokenByAccount, useTokenDataByIds, useTokenDataWithAddress, } from "@/api/token";
 import Image from "next/image";
 import getWalletBalance from "@/api/wallet";
 import useSWR from "swr";
@@ -20,7 +19,7 @@ interface TokenBalance {
   price?: number
 }
 
-export const Home = () => {
+export default function Home (){
   const { connection } = useConnection();
   const { publicKey } = useWallet();
   
@@ -164,5 +163,3 @@ export const Home = () => {
     </div>
   );
 }
-
-export default Home
