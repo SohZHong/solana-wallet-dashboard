@@ -9,7 +9,8 @@ import { Table, TableBody, TableCell, TableColumn, TableHeader, TableRow } from 
 import { fetchTokenByAccount, useTokenDataByIds, useTokenDataWithAddress, } from "@/api/token";
 import Image from "next/image";
 import getWalletBalance from "@/api/wallet";
-import useSWR from "swr";
+import Head from 'next/head';
+import React from "react";
 
 interface TokenBalance {
   mintAddress: string;
@@ -107,7 +108,15 @@ export default function Home (){
   }
 
   return (
-    <div className="w-screen p-5">
+    <React.Fragment>
+      <Head>
+        <meta property="og:type" content="website" />
+        <meta property="og:title" content="Wallet Dashboard" />
+        <meta property="og:url" content="https://solana-wallet-dashboard-sand.vercel.app" />
+        <meta property="og:image" content="https://solana-wallet-dashboard-sand.vercel.app/logo.png" />
+        <meta property="og:description" content="An interactive experience embedded from Solana" />
+      </Head>
+          <div className="w-screen p-5">
       <div className="flex items-center gap-4">
           <DashboardIcon className="w-8 h-auto"/>
           <h1 className="lg:text-2xl text-xl font-bold">Dashboard</h1>
@@ -161,5 +170,6 @@ export default function Home (){
         <AppButton onClick={handleAirDrop}>AirDrop Dev Tokens</AppButton>
       }
     </div>
+    </React.Fragment>
   );
 }
